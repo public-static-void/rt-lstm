@@ -12,27 +12,17 @@ Topic         : Beamformer: Filter-And-Sum Implementation
 
 import numpy as np
 import pyroomacoustics as pra
-from scipy.io import wavfile
 from scipy.signal import get_window
 import matplotlib.pyplot as plt
 import soundfile as sf
 
-def create_room(rt60:float,room_dim:np.ndarray,fs:int) -> pra.room:
+def create_room(room_dim:np.ndarray) -> pra.room:
     """Helper function. Creates a room from input parameters and returns it.
 
-    :param rt60: float
     :param room_dim: np.ndarray
-    :param fs: int
     :return: pra.room
     """
-    # RT60: the time it takes for the RIR to decays by 60 dB.
-    # We invert Sabine's formula to obtain the parameters for the ISM simulator.
-    e_absorption, max_order = pra.inverse_sabine(rt60, room_dim)
-
-    # Create the room.
-    room = pra.ShoeBox(
-        room_dim, fs=fs, materials=pra.Material(e_absorption), max_order=max_order
-    )
+    room = pra.ShoeBox(room_dim)
     return room
 
 def add_sources(room:pra.room, source_locs:np.ndarray, audio:np.ndarray, delay:float):
@@ -48,16 +38,16 @@ def add_sources(room:pra.room, source_locs:np.ndarray, audio:np.ndarray, delay:f
     # place the source in the room
     room.add_source(source_locs, signal=audio, delay=delay)
 
-def add_mics(room:pra.room,mic_locs:np.ndarray):
+def add_mics(room:pra.room,beamformer:pra.beamforming.Beamformer):
     """Helper function. Adds mics to an input room from input parameters.
 
     :param room: pra.room
-    :param mic_locs: np.ndarray
+    :param beamformer: pra.beamforming.Beamformer
     :return: None
     """
     # define the locations of the microphones.
     # finally place the array in the room.
-    room.add_microphone_array(mic_locs)
+    room.add_microphone_array(beamformer)
 
 
 
@@ -131,36 +121,28 @@ def main():
     # The desired reverberation time in seconds.
     rt60 = 0.5
     # Room dimensions x,y,z in meters.
-    room_dim = [9, 7.5, 3.5]
+    room_dim = [4,6]
 
-    # Define mic locations.
-    mic_locs = np.c_[
-        [6.3, 4.87, 1.2],  # mic 1
-        [6.3, 4.93, 1.2],  # mic 2
-    ]
+    # Define beamformer.
+    R = pra.linear_2D_array([2, 1.5], 4, 0, 0.1)
+
     # Define source locations.
-    source_locs = [2.5, 3.73, 1.76]
+    source_locs = [2.5, 4.5]
 
     # Define sample path.
     sample_path1 = "./Samples/2213f081fd811e304423f283850b-orig.wav"
     sample_path2 = "./Samples/examples_input_samples_german_speech_8000.wav"
+    sample_path3 = "./Samples/whitenoise.wav"
 
-
-
-    #fs1, audio1 = wavfile.read(sample_path1)
-    #fs2, audio2 = wavfile.read(sample_path2)
-
+    # Read samples from disk.
     audio1,fs1 = sf.read(sample_path1)
     audio2,fs2 = sf.read(sample_path2)
-
-
-    #print(audio1.dtype)
+    audio3, fs3 = sf.read(sample_path3)
 
     # Create time domain values.
     t1 = np.arange(0, len(audio1))/fs1
     t2 = np.arange(0, len(audio2))/fs2
-
-
+    t3 = np.arange(0,len(audio3))/fs3
 
     # Frame length in ms.
     fl = 32
@@ -168,55 +150,75 @@ def main():
     # Transform frame length from ms to samples.
     N1 = int(fs1*fl/1000)
     N2 = int(fs2*fl/1000)
+    N3 = int(fs3*fl/1000)
 
-
+    # Specify frame shift length.
     hop1 = int(N1/2)
     hop2 = int(N2/2)
+    hop3 = int(N3/2)
 
+    # Define windowing functions.
     window1 = np.sqrt(get_window('hann', N1, fftbins=True))
     window2 = np.sqrt(get_window('hann', N2, fftbins=True))
+    window3 = np.sqrt(get_window('hann', N3, fftbins=True))
 
     # Specify number of channels.
     n_chans1 = 2
     n_chans2 = 1
-
-    mySTFT1 = pra.transform.stft.STFT(N=N1,hop=hop1,analysis_window=window1,synthesis_window=window1,channels=n_chans1)
-    mySTFT2 = pra.transform.stft.STFT(N=N2, hop=hop2, analysis_window=window2, synthesis_window=window2,channels=n_chans2)
+    n_chans3 = 1
 
     # Specify delay.
     delay = 1.3
 
+    # Create classes to perform STFT transformations.
+    mySTFT1 = pra.transform.stft.STFT(N=N1,hop=hop1,analysis_window=window1,synthesis_window=window1,channels=n_chans1)
+    mySTFT2 = pra.transform.stft.STFT(N=N2, hop=hop2, analysis_window=window2, synthesis_window=window2,channels=n_chans2)
+    mySTFT3 = pra.transform.stft.STFT(N=N3, hop=hop3, analysis_window=window3, synthesis_window=window3,channels=n_chans3)
+
     # Create room.
-    room1 = create_room(rt60,room_dim,fs)
-    # Add mics.
-    add_mics(room1,mic_locs)
+    room1 = create_room(room_dim)
+
+    # Create beamformer.
+    beamformer = pra.Beamformer(R, room1.fs)
+    # Add beamformer to room.
+    add_mics(room1,beamformer)
+
     # Add source(s).
     add_sources(room1,source_locs,audio2, delay)
 
-
+    # Compute STFT, iSTFT and corresponding tine values.
     dft1 = mySTFT1.analysis(audio1)
     idft1 = mySTFT1.synthesis(dft1)
     t_idft_1 = np.arange(0, len(idft1))/fs1
-
-    plot_signal(audio1,t1,"audio1")
-    plot_signal(idft1, t_idft_1, "audio1 synthesis")
-
 
     dft2 = mySTFT2.analysis(audio2)
     idft2 = mySTFT2.synthesis(dft2)
     t_idft_2 = np.arange(0, len(idft2))/fs2
 
-    plot_signal(audio2,t2,"audio2")
-    plot_signal(idft2, t_idft_2, "audio2 synthesis")
+    dft3 = mySTFT3.analysis(audio3)
+    idft3 = mySTFT3.synthesis(dft3)
+    t_idft_3 = np.arange(0, len(idft3)) / fs3
 
-    #print(idft1.dtype)
+    # Write to disk.
+    #sf.write("audio1.wav",idft1,fs1)
+    #sf.write("audio2.wav",idft2, fs2)
 
-    sf.write("audio1.wav",idft1,fs1)
-    sf.write("audio2.wav",idft2, fs2)
+    # Plot signals.
+    #plot_signal(audio1,t1,"audio1")
+    #plot_signal(idft1, t_idft_1, "audio1 synthesis")
+    #plot_signal(audio2,t2,"audio2")
+    #plot_signal(idft2, t_idft_2, "audio2 synthesis")
+    #plot_signal(audio3, t3, "audio3")
+    #plot_signal(idft3, t_idft_3, "audio3 synthesis")
 
+    # Now compute the delay and sum weights for the beamformer
+    room1.mic_array.rake_delay_and_sum_weights(room1.sources[0][:1])
 
+    beamformer.plot()
+
+    # plot the room and resulting beamformer
+    room1.plot(freq=[1000, 2000, 4000, 8000], img_order=0)
     plt.show()
-
 
 if __name__ == "__main__":
     main()
