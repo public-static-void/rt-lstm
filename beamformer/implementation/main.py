@@ -32,11 +32,11 @@ def create_room(rt60:float,room_dim:np.ndarray,fs:int) -> pra.room:
     )
     return room
 
-def add_sources(room:pra.room, source_locs:np.ndarray, audio_path:str):
+def add_sources(room:pra.room, source_locs:np.ndarray, audio_path:str, delay:float):
 
     _, audio = wavfile.read(audio_path)
     # place the source in the room
-    room.add_source(source_locs, signal=audio, delay=1.3)
+    room.add_source(source_locs, signal=audio, delay=delay)
 
 def add_mics(room:pra.room,mic_locs:np.ndarray):
     """Helper function. Adds mics to an input room from input parameters.
@@ -71,12 +71,17 @@ def main():
     # Define source locations.
     source_locs = [2.5, 3.73, 1.76]
 
+    # Define sample path.
+    sample_path = "../../Samples/2213f081fd811e304423f283850b-orig.wav"
+    # Specify delay.
+    delay = 1.3
+
     # Create room.
     room1 = create_room(rt60,room_dim,fs)
     # Add mics.
     add_mics(room1,mic_locs)
     # Add source(s).
-    add_sources(room1,'speech.wav')
+    add_sources(room1,source_locs,sample_path, delay)
 
 
 
