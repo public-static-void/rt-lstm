@@ -9,11 +9,14 @@ Last modified : May 12th, 2022
 Description   : Master's Project "Source Separation for Robot Control"
 Topic         : Beamformer: Filter-And-Sum Implementation
 """
+import sys
 
 import numpy as np
+np.set_printoptions(threshold=sys.maxsize)
 import pyroomacoustics as pra
 from scipy.signal import get_window
 from scipy.signal import stft
+from scipy.signal import istft
 import matplotlib.pyplot as plt
 import soundfile as sf
 
@@ -207,7 +210,7 @@ def main():
     room1.plot(freq=[1000, 2000, 4000, 8000], img_order=0)
     room2.plot(freq=[1000, 2000, 4000, 8000], img_order=0)
 
-    room1.compute_rir()
+    #room1.compute_rir()
     room2.compute_rir()
 
     premix1 = room1.simulate(return_premix=True)
@@ -215,9 +218,6 @@ def main():
 
     #sf.write("premix2noise.wav",premix2[1].T,fs3)
     #sf.write("premix2speech.wav", premix2[0].T, fs3)
-
-    # pyroomaccoustics dft? stft:
-    # (10, 706, 2)
 
     # scipy stft:
     # (129,)
@@ -230,6 +230,7 @@ def main():
     #print(stft2noise[2].shape) # Zxx: ndarray STFT of x.
 
     stft2speech = stft(premix1[0],fs2,window=window2)
+
     #print(stft2speech[0].shape)
     #print(stft2speech[1].shape)
     #print(stft2speech[2].shape)
@@ -237,26 +238,107 @@ def main():
     # TODO:
     # covariance matrix
     alpha = 0.8
-    init_matrix = np.zeros((4,4))
+
     #print(init_matrix)
     #times = stft2noise[2][:,t,:]
     #freqs = stft2noise[2][:,:,f]
+    _,times,_ = stft2noise
+    freqs,_,_ = stft2noise
+    _,_,power = stft2noise
+
     #print(times.shape)
-    #print(freqs)
+    #print(freqs.shape)
+    #print(power.shape[0])
+
 
     # TODO: loop over array
     # TODO: zu jeder Frequenz und zu jedem Zeitpunkt neue Matrix
     # TODO: zu jeder Frequenz eine initiale Matrix
     # TODO: -->iterativ<-- (in Abhängigkeit von der Zeit) zu jeder Frequenz und zu jedem Zeitpunkt eine Kovarianz?Matrix ausrechnen
-    for t in stft2noise:
-        for f in t:
-                #print(x)
-            pass
-            #init_matrix = init_matrix + f(1 - alpha * (?))
+
+    cov_mat = np.zeros((times.shape[0],freqs.shape[0],power.shape[0],power.shape[0]),dtype=np.complex_)
+
+
+    inv_cov_mat = np.zeros_like(cov_mat, dtype="complex128")
+
+    eigen_mat = np.zeros((cov_mat.shape[0],cov_mat.shape[1],cov_mat.shape[2],1), dtype="complex128")
+    filter_mat = np.zeros((cov_mat.shape[0],cov_mat.shape[1],cov_mat.shape[2],1), dtype="complex128")
+
+    # compute covariance matrix (or matrices rather?)
+    for t,_ in enumerate(times):
+        for f,_ in enumerate(freqs):
+            init_matrix = np.zeros((4, 4))
+            np.fill_diagonal(init_matrix,1)
+            x = power[:,f,t]
+            init_matrix = alpha * init_matrix + (1 - alpha * x * x.conj().T)
+            cov_mat[t,f] = init_matrix
+            # eignevector element wise
+            #eigenvector = np.empty((4,1))
+            eigenvector,_ = np.linalg.eig(cov_mat[t,f])
+            eigenvector = eigenvector[:,np.newaxis]
+            #print(eigenvector.shape)
+            eigen_mat[t,f] = eigenvector
+            # invert element wise
+            inv_cov = np.linalg.inv(cov_mat[t, f])
+            inv_cov_mat[t,f] = inv_cov
+            #print(inv_cov.shape)
+            #print(eigenvector.shape)
+            #print(eigenvector.conj().T.shape)
+            #print((inv_cov * eigenvector).shape)
+            #filter_coeff = (inv_cov * eigenvector) / eigenvector.conj() * inv_cov * eigenvector
+            filter_coeff = (inv_cov @ eigenvector) / eigenvector.conj().T @ inv_cov @ eigenvector
+            #filter_coeff = np.dot(inv_cov, eigenvector) / np.dot(np.dot(eigenvector.conj().T * inv_cov) * eigenvector)
+            #print(filter_coeff.shape)
+            #print(filter_mat.shape)
+            #print(eigenvector)
+            #print(eigenvector.T)
+            filter_mat[t,f] = filter_coeff
+
+    # eigenvector used as steering vector
+
+    #filter_coeff = ((inv_cov_mat*eigenvector)/(eigenvector.conj().T*inv_cov_mat*eigenvector))
+    #filter_coeff = ((inv_cov_mat[0,0] * eigen_mat[0,0]) / (eigen_mat[0,0].conj().T * inv_cov_mat[0,0] * eigen_mat[0,0]))
+    #filter_coeff = ((inv_cov_mat * eigen_mat) / (eigen_mat.conj().T * inv_cov_mat * eigen_mat))
+
+    #print(eigen_mat.shape)
+    #print(inv_cov_mat[0,0].shape)
+    #print(eigen_mat[0,0].shape)
+    #print(eigen_mat[0,0].conj().T.shape)
+
+    #print(filter_coeff)
+
+    #print(filter_coeff.T.shape)
+    #print(cov_mat.shape)
+
+    _,_,unfiltered_speech = stft2speech
+
+    filtered_speech = filter_mat.T * unfiltered_speech
+
+    _,filtered_istft = istft(filtered_speech,fs2, window2)
+
+    print(filtered_istft.shape)
+
+    print(unfiltered_speech.shape)
+
+    plt.figure()
+    plt.plot(audio2)
+    plt.figure()
+    plt.plot(filtered_istft[0,0,:])
+    plt.show()
 
 
 
+    #print(filter_mat)
+    #print(unfiltered_speech[2,13,64])
+    #print(unfiltered_speech)
+    #print(filtered_speech)
 
+    #filter_coeff = (cov_mat * eigenvector)
+
+    #print(filter_coeff)
+
+    #print(eigenvector.dtype)
+    #print(filter_coeff.shape)
 
 
 
