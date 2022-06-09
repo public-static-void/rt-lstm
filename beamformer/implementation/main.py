@@ -136,9 +136,11 @@ def compute_SNR(signal: np.ndarray, axis=0, ddof=0) -> float:
         Delta Degrees Of Freedom.
         By default 0.
     """
-    m = signal.mean(axis)
+    signal = np.asanyarray(signal)
+    mean = signal.mean(axis)
     stdev = signal.std(axis=axis, ddof=ddof)
-    return np.where(stdev == 0, 0, m / stdev)
+    return 20*np.log10(abs(np.where(stdev == 0, 0, mean / stdev)))
+    #return np.where(stdev == 0, 0, mean / stdev)
 
 
 def main():
@@ -156,8 +158,11 @@ def main():
     # Room dimensions x,y,z in meters.
     room_dim = [20, 30]
 
+    # number of mics
+    N_mics = 4
+
     # Define mic array.
-    R = pra.linear_2D_array([2, 1.5], 4, 0, 0.1)
+    R = pra.linear_2D_array([2, 1.5], N_mics, 0, 0.1)
 
     # ROOM 1
     # Define source locations. (noise outside beampattern)
@@ -247,10 +252,13 @@ def main():
     # compute covariance matrix (or matrices rather?)
     for t, _ in enumerate(times):
         for f, _ in enumerate(freqs):
-            init_matrix = np.zeros((4, 4))
-            np.fill_diagonal(init_matrix, 1)
+            # adaptive filtering
+            if(t==0, f==0):
+                init_matrix = np.eye(4)
+            else:
+                init_matrix = cov_mat[t-1, f]
             x = power[:, f, t]
-            init_matrix = alpha * init_matrix + (1 - alpha * x * x.conj().T)
+            init_matrix = alpha * init_matrix + ((1 - alpha) * np.einsum('i,j->ij', x, x.conj()))
             cov_mat[t, f] = init_matrix
             # eigenvector used as steering vector
             # eigenvector element wise
@@ -266,8 +274,8 @@ def main():
 
     _, _, unfiltered_speech = stft2speech
 
-    filtered_speech = filter_mat.T * unfiltered_speech
-    _, filtered_istft = istft(filtered_speech, fs_speech, window1)
+    filtered_speech = np.einsum('tfc,cft->tf', np.squeeze(filter_mat.conj()), unfiltered_speech)
+    _, filtered_istft = istft(filtered_speech, fs_speech, window1, time_axis=0, freq_axis=1)
     _, unfiltered_istft = istft(unfiltered_speech, fs_speech, window1)
 
     premix_noisy_speech = premix1[0] + premix1[1]
@@ -276,25 +284,24 @@ def main():
     _, noisy_istft = istft(noisy_speech, fs_speech, window1)
 
     #plt.figure()
-    #plt.title("noisy speech signal (pre-processing for DEBUG purposes)")
-    #plt.plot(noisy_speech)
+    #plt.title("clean speech signal")
+    #plt.plot(audio_speech)
+    #plt.figure()
+    #plt.title("noisy speech signal")
+    #plt.plot(noisy_istft[0, :])
+    #plt.figure()
+    #plt.title("filtered speech signal")
+    #plt.plot(filtered_istft[0, 0, :])
+    #plt.show()
 
-    plt.figure()
-    plt.title("clean speech signal")
-    plt.plot(audio_speech)
-    plt.figure()
-    plt.title("noisy speech signal")
-    plt.plot(noisy_istft[0, :])
-    plt.figure()
-    plt.title("filtered speech signal")
-    plt.plot(filtered_istft[0, 0, :])
-    plt.show()
-
+    noisy_sum = noisy_istft[0, :] + noisy_istft[1, :] + noisy_istft[2, :] + noisy_istft[3, :]
+    filtered_sum = filtered_istft / N_mics
 
     sf.write("clean_speech.wav", audio_speech, fs_noise)
     sf.write("noisy_speech.wav", noisy_istft[0, :], fs_speech)
-    sf.write("filtered_speech.wav", filtered_istft[0, 0, :], fs_speech)
-
+    sf.write("filtered_speech.wav", filtered_istft, fs_speech)
+    sf.write("noisy_speech_sum.wav", noisy_sum, fs_speech)
+    #sf.write("filtered_speech_sum.wav", filtered_sum, fs_speech)
 
     #output = beamformer.process()
     #sf.write("output.wav", output, fs_noise)
@@ -302,14 +309,42 @@ def main():
     #room1.mic_array.to_wav(filename="room1.wav", mono=False)
     #room2.mic_array.to_wav(filename="room2.wav", mono=False)
 
-    #TODO SNR
     clean_SNR = compute_SNR(audio_speech)
     noisy_SNR = compute_SNR(noisy_istft[0, :])
-    filtered_SNR = compute_SNR(filtered_istft[0, 0, :])
+    filtered_SNR = compute_SNR(filtered_sum)
+
 
     #print(clean_SNR)
     #print(noisy_SNR)
-    #print(filtered_SNR)
+    print(filtered_SNR)
+
+    # TODO: why are there differences in amplitude
+    #plt.figure()
+    #plt.title("noisy speech signal (pre-processing pre-STFT for DEBUG purposes)")
+    #plt.plot(premix_noisy_speech.flatten())
+    #plt.figure()
+    #plt.title("noisy speech signal (pre-processing post-STFT for DEBUG purposes)")
+    #plt.plot(noisy_istft.flatten())
+    #plt.figure()
+    #plt.title("unfiltered speech signal (post-processing post-STFT for DEBUG purposes)")
+    #plt.plot(unfiltered_istft.flatten())
+
+    plt.figure()
+    plt.title("filtered speech signal (post-processing post-STFT for DEBUG purposes)")
+    plt.plot(filtered_istft)
+
+    plt.figure()
+    plt.title("filtered and noramlized speech signal (post-processing post-STFT for DEBUG purposes)")
+    plt.plot(filtered_sum)
+
+    #plt.figure()
+    #plt.title("noisy speech signal SUM (post-processing post-STFT for DEBUG purposes)")
+    #plt.plot(noisy_sum)
+    #plt.figure()
+    #plt.title("filtered speech signal SUM (post-processing post-STFT for DEBUG purposes)")
+    #plt.plot(filtered_sum)
+
+    plt.show()
 
 if __name__ == "__main__":
     main()
