@@ -143,15 +143,85 @@ def compute_SNR(signal: np.ndarray, axis=0, ddof=0) -> float:
     #return np.where(stdev == 0, 0, mean / stdev)
 
 
+def get_power(s: np.ndarray) -> float:
+    """Helper function. Computes the power of input signal.
+
+    Parameters
+    ----------
+    s : np.ndarray
+        Input signal.
+    """
+    stdev = s.std(axis=0, ddof=0)
+    var = stdev**2
+    power = np.sum(var)
+    return power
+
+
+def show_spectrogram(m_stft: np.ndarray, v_freq: np.ndarray,
+                     v_time: np.ndarray, title: str):
+    """Helper function. Creates a spectrogram of the input. The extent option
+    tells matplotlib to use the entries of the vector v_time for the x-axis
+    and v_freq for the y-axis. Here, the vector v_time contains the time
+    instants for each block / each spectrum and the vector v_freq contains the
+    frequency bin information.
+
+    Parameters
+    ----------
+    m_stft : np.ndarray
+        A matrix which stores the complex short-time spectra in each row.
+    v_freq : np.ndarray
+        A vector which contains the frequency axis (in units of Hertz)
+        corresponding to the computed spectra.
+    v_time : np.ndarray
+        Time steps around which a frame is centered (as in previous exercise).
+    title : str
+        Plot title.
+    """
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    im = ax.imshow(10 * np.log10(np.maximum(np.square(np.abs(m_stft)),
+                                            10**(-15))), cmap='viridis',
+                   origin='lower', extent=[v_time[0], v_time[-1], v_freq[0],
+                                           v_freq[-1]], aspect='auto')
+    fig.colorbar(im, orientation="vertical", pad=0.2)
+    plt.title(title)
+    ax.set_xlabel('Time (s)')
+    ax.set_ylabel('Frequency (Hz)')
+
+
 def main():
 
     # Define sample path.
     sample_path_speech = "./Samples/examples_input_samples_german_speech_8000.wav"
     sample_path_noise = "./Samples/whitenoise.wav"
+    sample_path_babble = "./Samples/SpeechBabble.wav"
+    sample_path_white = "./Samples/SpeechWhite.wav"
+    sample_path_comp1 = "./Samples/speech1.wav"
+    sample_path_comp2 = "./Samples/speech2.wav"
+    sample_path_comp3 = "./Samples/sample_0#clean.CH0.wav"
+    sample_path_comp4 = "./Samples/sample_1#clean.CH0.wav"
+    sample_path_comp5 = "./Samples/sample_2#clean.CH0.wav"
+    sample_path_comp6 = "./Samples/sample_3#clean.CH0.wav"
+    sample_path_comp7 = "./Samples/sample_67#clean.CH0.wav"
+    sample_path_comp8 = "./Samples/sample_166#clean.CH0.wav"
+    sample_path_comp9 = "./Samples/sample_255#clean.CH0.wav"
+    sample_path_comp10 = "./Samples/sample_397#clean.CH0.wav"
 
     # Read samples from disk.
     audio_speech, fs_speech = sf.read(sample_path_speech)
     audio_noise, fs_noise = sf.read(sample_path_noise)
+    audio_babble, fs_babble = sf.read(sample_path_babble)
+    audio_white, fs_white = sf.read(sample_path_white)
+    audio_comp1, fs_comp1 = sf.read(sample_path_comp1)
+    audio_comp2, fs_comp2 = sf.read(sample_path_comp2)
+    audio_comp3, fs_comp3 = sf.read(sample_path_comp3)
+    audio_comp4, fs_comp4 = sf.read(sample_path_comp4)
+    audio_comp5, fs_comp5 = sf.read(sample_path_comp5)
+    audio_comp6, fs_comp6 = sf.read(sample_path_comp6)
+    audio_comp7, fs_comp7 = sf.read(sample_path_comp7)
+    audio_comp8, fs_comp8 = sf.read(sample_path_comp8)
+    audio_comp9, fs_comp9 = sf.read(sample_path_comp9)
+    audio_comp10, fs_comp10 = sf.read(sample_path_comp10)
 
     # The desired reverberation time in seconds.
     rt60 = 0.5
@@ -160,23 +230,19 @@ def main():
 
     # number of mics
     N_mics = 4
+    N_mics2 = 2
+    N_mics3 = 3
 
     # Define mic array.
     R = pra.linear_2D_array([2, 1.5], N_mics, 0, 0.1)
+    R2 = pra.linear_2D_array([2, 1.5], N_mics2, 0, 0.1)
+    R3 = pra.linear_2D_array([2, 1.5], N_mics3, 0, 0.1)
 
-    # ROOM 1
-    # Define source locations. (noise outside beampattern)
-    source_locs1 = [2.5, 4.5]
+    # Define source locations.
+    source_locs1 = [4.5, 2.5]
     source_locs2 = [17.5, 22.5]
-
-    # ROOM 2
-    # Define source locations. (noise inside beampattern)
-    source_locs3 = [2.5, 4.5]
-    source_locs4 = [0.5, 3.0]
-
-    # Create time domain values.
-    t_speech = np.arange(0, len(audio_speech))/fs_speech
-    t_noise = np.arange(0, len(audio_noise))/fs_noise
+    source_locs3 = [5.5, 4.5]
+    source_locs4 = [7.5, 6.5]
 
     # Frame length in ms.
     fl = 32
@@ -184,10 +250,10 @@ def main():
     # Transform frame length from ms to samples.
     N_speech = int(fs_speech*fl/1000)
     N_noise = int(fs_noise*fl/1000)
+    N_comp = int(fs_comp9*fl/1000)
 
     # Define windowing functions.
     window1 = np.sqrt(get_window('hann', N_speech, fftbins=True))
-    window2 = np.sqrt(get_window('hann', N_noise, fftbins=True))
 
     # Specify delay.
     delay = 1.3
@@ -195,12 +261,17 @@ def main():
     # Create room.
     room1 = create_room(room_dim, rt60)
     room2 = create_room(room_dim, rt60)
+    room3 = create_room(room_dim, rt60)
 
     # Create beamformer.
     beamformer = pra.Beamformer(R, room1.fs)
+    beamformer2 = pra.Beamformer(R2, room3.fs)
+    beamformer3 = pra.Beamformer(R3, room3.fs)
     # Add beamformer to room.
     add_mics(room1, beamformer)
     add_mics(room2, beamformer)
+    #add_mics(room3, beamformer2)
+    add_mics(room3, beamformer3)
 
     # Add source(s).
     add_sources(room1, source_locs1, audio_speech, delay)
@@ -209,140 +280,110 @@ def main():
     add_sources(room2, source_locs3, audio_speech, delay)
     add_sources(room2, source_locs4, audio_noise, delay)
 
-    # Now compute the delay and sum weights for the beamformer
-    #room1.mic_array.rake_delay_and_sum_weights(room1.sources[0][:1])
-    room2.mic_array.rake_delay_and_sum_weights(room2.sources[0][:1])
-
-    #beamformer.plot()
-
-    # plot the room and resulting beamformer
-    room1.plot(freq=[1000, 2000, 4000, 8000], img_order=0)
-    room2.plot(freq=[1000, 2000, 4000, 8000], img_order=0)
+    add_sources(room3, source_locs1, audio_comp6, delay)
+    add_sources(room3, source_locs3, audio_white, delay)
+    add_sources(room3, source_locs4, audio_comp9, delay)
 
     room1.compute_rir()
     room2.compute_rir()
+    room3.compute_rir()
 
     premix1 = room1.simulate(return_premix=True)
     premix2 = room2.simulate(return_premix=True)
+    premix3 = room3.simulate(return_premix=True)
 
-    #sf.write("premix2noise.wav",premix2[1].T,fs_noise)
-    #sf.write("premix2speech.wav", premix2[0].T, fs_noise)
+    premix_noise = premix3[1] + premix3[2]
 
-    stft2noise = stft(premix1[1], fs_speech, window=window1)
-    #print(stft2noise[0].shape) # f: ndarray Array of sample frequencies.
-    #print(stft2noise[1].shape) # t: ndarray Array of segment times.
-    #print(stft2noise[2].shape) # Zxx: ndarray STFT of x.
-
-    stft2speech = stft(premix1[0], fs_speech, window=window1)
+    #sp_freqs, sp_times, sp_power = stft(premix1[0], fs_speech, window=window1)
+    #n_freqs, n_times, n_power = stft(premix1[1], fs_speech, window=window1)
+    sp_freqs, sp_times, sp_power = stft(premix3[0], fs_comp9, window=window1)
+    n_freqs, n_times, n_power = stft(premix_noise, fs_comp9, window=window1)
 
     # covariance matrix
     alpha = 0.8
 
-    _, times, _ = stft2speech
-    freqs, _, _ = stft2speech
-    _, _, power = stft2speech
+    n_cov_mat = np.zeros((n_times.shape[0], n_freqs.shape[0], n_power.shape[0], n_power.shape[0]), dtype=np.complex_)
+    sp_cov_mat = np.zeros((sp_times.shape[0], sp_freqs.shape[0], sp_power.shape[0], sp_power.shape[0]), dtype=np.complex_)
 
-    cov_mat = np.zeros((times.shape[0], freqs.shape[0], power.shape[0], power.shape[0]), dtype=np.complex_)
+    n_inv_cov_mat = np.zeros_like(n_cov_mat, dtype="complex128")
 
-    inv_cov_mat = np.zeros_like(cov_mat, dtype="complex128")
-
-    eigen_mat = np.zeros((cov_mat.shape[0], cov_mat.shape[1], cov_mat.shape[2], 1), dtype="complex128")
-    filter_mat = np.zeros((cov_mat.shape[0], cov_mat.shape[1], cov_mat.shape[2], 1), dtype="complex128")
+    eigen_mat = np.zeros((sp_cov_mat.shape[0], sp_cov_mat.shape[1], sp_cov_mat.shape[2], 1), dtype="complex128")
+    filter_mat = np.zeros((n_cov_mat.shape[0], n_cov_mat.shape[1], n_cov_mat.shape[2], 1), dtype="complex128")
 
     # compute covariance matrix (or matrices rather?)
-    for t, _ in enumerate(times):
-        for f, _ in enumerate(freqs):
+    for t, _ in enumerate(n_times):
+        for f, _ in enumerate(n_freqs):
             # adaptive filtering
             if(t==0, f==0):
-                init_matrix = np.eye(4)
+                #init_matrix = np.eye(4)
+                sp_init_matrix = np.eye(3)
+                n_init_matrix = np.eye(3)
+                #init_matrix = np.eye(2)
             else:
-                init_matrix = cov_mat[t-1, f]
-            x = power[:, f, t]
-            init_matrix = alpha * init_matrix + ((1 - alpha) * np.einsum('i,j->ij', x, x.conj()))
-            cov_mat[t, f] = init_matrix
+                n_init_matrix = n_cov_mat[t-1, f]
+                sp_init_matrix = sp_cov_mat[t - 1, f]
+            sp_x = sp_power[:, f, t]
+            n_x = n_power[:, f, t]
+            sp_init_matrix = alpha * sp_init_matrix + ((1 - alpha) * np.einsum('i,j->ij', sp_x, sp_x.conj()))
+            n_init_matrix = alpha * n_init_matrix + ((1 - alpha) * np.einsum('i,j->ij', n_x, n_x.conj()))
+            n_cov_mat[t, f] = n_init_matrix
+            sp_cov_mat[t, f] = sp_init_matrix
             # eigenvector used as steering vector
             # eigenvector element wise
-            eigenvector, _ = np.linalg.eig(cov_mat[t, f])
+            eigenvector, _ = np.linalg.eig(sp_cov_mat[t, f])
             eigenvector = eigenvector[:, np.newaxis]
             eigen_mat[t, f] = eigenvector
             # invert element wise
-            inv_cov = np.linalg.inv(cov_mat[t, f])
-            inv_cov_mat[t, f] = inv_cov
-            filter_coeff = (inv_cov @ eigenvector) / eigenvector.conj().T @ inv_cov @ eigenvector
+            n_inv_cov = np.linalg.inv(n_cov_mat[t, f])
+            n_inv_cov_mat[t, f] = n_inv_cov
+            filter_coeff = (n_inv_cov @ eigenvector) / (eigenvector.conj().T @ n_inv_cov @ eigenvector)
 
             filter_mat[t, f] = filter_coeff
 
-    _, _, unfiltered_speech = stft2speech
+    noisy_speech = sp_power + n_power
 
-    filtered_speech = np.einsum('tfc,cft->tf', np.squeeze(filter_mat.conj()), unfiltered_speech)
-    _, filtered_istft = istft(filtered_speech, fs_speech, window1, time_axis=0, freq_axis=1)
-    _, unfiltered_istft = istft(unfiltered_speech, fs_speech, window1)
+    filtered_speech = np.einsum('tfc,cft->ft', np.squeeze(filter_mat.conj()), noisy_speech)
 
-    premix_noisy_speech = premix1[0] + premix1[1]
-    stft2noisy_speech = stft(premix_noisy_speech, fs_speech, window=window1)
-    _,_,noisy_speech = stft2noisy_speech
-    _, noisy_istft = istft(noisy_speech, fs_speech, window1)
+    #_, filtered_istft = istft(filtered_speech, fs_speech, window1, time_axis=1, freq_axis=0)
+    #_, unfiltered_istft = istft(noisy_speec, fs_speech, window1, time_axis=2, freq_axis=1)
+    _, filtered_istft = istft(filtered_speech, fs_comp9, window1, time_axis=1, freq_axis=0)
+    _, unfiltered_istft = istft(noisy_speech, fs_comp9, window1, time_axis=2, freq_axis=1)
 
-    #plt.figure()
-    #plt.title("clean speech signal")
-    #plt.plot(audio_speech)
-    #plt.figure()
-    #plt.title("noisy speech signal")
-    #plt.plot(noisy_istft[0, :])
-    #plt.figure()
-    #plt.title("filtered speech signal")
-    #plt.plot(filtered_istft[0, 0, :])
-    #plt.show()
+    #premix_noisy_speech = premix1[0] + premix1[1]
+    premix_noisy_speech = premix3[0] + premix3[1] + premix3[2]
 
-    noisy_sum = noisy_istft[0, :] + noisy_istft[1, :] + noisy_istft[2, :] + noisy_istft[3, :]
-    filtered_sum = filtered_istft / N_mics
+    #sf.write("noisy_speech0.wav", premix_noisy_speech[0], fs_speech)
+    #sf.write("noisy_speech1.wav", premix_noisy_speech[1], fs_speech)
+    #sf.write("noisy_speech2.wav", premix_noisy_speech[2], fs_speech)
+    #sf.write("noisy_speech3.wav", premix_noisy_speech[3], fs_speech)
 
-    sf.write("clean_speech.wav", audio_speech, fs_noise)
-    sf.write("noisy_speech.wav", noisy_istft[0, :], fs_speech)
-    sf.write("filtered_speech.wav", filtered_istft, fs_speech)
-    sf.write("noisy_speech_sum.wav", noisy_sum, fs_speech)
-    #sf.write("filtered_speech_sum.wav", filtered_sum, fs_speech)
+    #sf.write("reconstr_filtered_speech.wav", filtered_istft, fs_speech)
 
-    #output = beamformer.process()
-    #sf.write("output.wav", output, fs_noise)
+    sf.write("noisy_speech0-0.wav", premix_noisy_speech[0], fs_comp9)
+    sf.write("noisy_speech0-1.wav", premix_noisy_speech[1], fs_comp9)
+    sf.write("noisy_speech0-2.wav", premix_noisy_speech[2], fs_comp9)
 
-    #room1.mic_array.to_wav(filename="room1.wav", mono=False)
-    #room2.mic_array.to_wav(filename="room2.wav", mono=False)
+    sf.write("reconstr_filtered_speech0.wav", filtered_istft, fs_comp9)
 
-    clean_SNR = compute_SNR(audio_speech)
-    noisy_SNR = compute_SNR(noisy_istft[0, :])
-    filtered_SNR = compute_SNR(filtered_sum)
+    #print(sp_power[0].shape)
+    #print(sp_freqs.shape)
+    #print(sp_times.shape)
 
+    # TODO: fix filter? noise gets reduced, but speech rather not.
 
-    #print(clean_SNR)
-    #print(noisy_SNR)
-    print(filtered_SNR)
+    show_spectrogram(n_power[0], n_freqs, n_times, "noise channel 0 spectrogram")
+    show_spectrogram(n_power[1], n_freqs, n_times, "noise channel 1 spectrogram")
+    show_spectrogram(n_power[2], n_freqs, n_times, "noise channel 2 spectrogram")
 
-    # TODO: why are there differences in amplitude
-    #plt.figure()
-    #plt.title("noisy speech signal (pre-processing pre-STFT for DEBUG purposes)")
-    #plt.plot(premix_noisy_speech.flatten())
-    #plt.figure()
-    #plt.title("noisy speech signal (pre-processing post-STFT for DEBUG purposes)")
-    #plt.plot(noisy_istft.flatten())
-    #plt.figure()
-    #plt.title("unfiltered speech signal (post-processing post-STFT for DEBUG purposes)")
-    #plt.plot(unfiltered_istft.flatten())
+    show_spectrogram(sp_power[0], sp_freqs, sp_times, "speech channel 0 spectrogram")
+    show_spectrogram(sp_power[1], sp_freqs, sp_times, "speech channel 1 spectrogram")
+    show_spectrogram(sp_power[2], sp_freqs, sp_times, "speech channel 2 spectrogram")
 
-    plt.figure()
-    plt.title("filtered speech signal (post-processing post-STFT for DEBUG purposes)")
-    plt.plot(filtered_istft)
+    show_spectrogram(noisy_speech[0], sp_freqs, sp_times, "noisy speech channel 0 spectrogram")
+    show_spectrogram(noisy_speech[1], sp_freqs, sp_times, "noisy speech channel 1 spectrogram")
+    show_spectrogram(noisy_speech[2], sp_freqs, sp_times, "noisy speech channel 2 spectrogram")
 
-    plt.figure()
-    plt.title("filtered and noramlized speech signal (post-processing post-STFT for DEBUG purposes)")
-    plt.plot(filtered_sum)
-
-    #plt.figure()
-    #plt.title("noisy speech signal SUM (post-processing post-STFT for DEBUG purposes)")
-    #plt.plot(noisy_sum)
-    #plt.figure()
-    #plt.title("filtered speech signal SUM (post-processing post-STFT for DEBUG purposes)")
-    #plt.plot(filtered_sum)
+    show_spectrogram(filtered_speech, sp_freqs, sp_times, "filtered speech channel 0 spectrogram")
 
     plt.show()
 
