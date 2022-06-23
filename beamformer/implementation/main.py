@@ -5,9 +5,9 @@
 Authors       : Vadim Titov, Henning Möllers, Leon Mannweiler
 Matr.-Nr.     : 6021356, ..., ...
 Created       : May 12th, 2022
-Last modified : May 12th, 2022
+Last modified : June 23th, 2022
 Description   : Master's Project "Source Separation for Robot Control"
-Topic         : Beamformer: Filter-And-Sum Implementation
+Topic         : Beamformer: MVDR Implementation
 """
 import sys
 
