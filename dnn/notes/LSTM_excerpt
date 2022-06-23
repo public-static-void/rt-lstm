@@ -187,7 +187,7 @@ Division for work:
                 output size : 128
             > dense, sigmoid activation, output layer:
                 input       : ?
-                input size  : ?
+                input size  : 128
                 output      : M(t)
                 output size : 1
         > output vector of second LSTM layer is transformed to output target,
