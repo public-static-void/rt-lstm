@@ -196,8 +196,8 @@ def main():
     sample_path_noise = "./Samples/whitenoise.wav"
     sample_path_babble = "./Samples/SpeechBabble.wav"
     sample_path_white = "./Samples/SpeechWhite.wav"
-    sample_path_comp1 = "./Samples/speech1.wav"
-    sample_path_comp2 = "./Samples/speech2.wav"
+    #sample_path_comp1 = "./Samples/speech1.wav"
+    #sample_path_comp2 = "./Samples/speech2.wav"
     sample_path_comp3 = "./Samples/sample_0#clean.CH0.wav"
     sample_path_comp4 = "./Samples/sample_1#clean.CH0.wav"
     sample_path_comp5 = "./Samples/sample_2#clean.CH0.wav"
@@ -212,8 +212,8 @@ def main():
     audio_noise, fs_noise = sf.read(sample_path_noise)
     audio_babble, fs_babble = sf.read(sample_path_babble)
     audio_white, fs_white = sf.read(sample_path_white)
-    audio_comp1, fs_comp1 = sf.read(sample_path_comp1)
-    audio_comp2, fs_comp2 = sf.read(sample_path_comp2)
+    #audio_comp1, fs_comp1 = sf.read(sample_path_comp1)
+    #audio_comp2, fs_comp2 = sf.read(sample_path_comp2)
     audio_comp3, fs_comp3 = sf.read(sample_path_comp3)
     audio_comp4, fs_comp4 = sf.read(sample_path_comp4)
     audio_comp5, fs_comp5 = sf.read(sample_path_comp5)
@@ -314,24 +314,24 @@ def main():
     for t, _ in enumerate(n_times):
         for f, _ in enumerate(n_freqs):
             # adaptive filtering
-            if(t==0, f==0):
+            if(t==0):
                 #init_matrix = np.eye(4)
                 sp_init_matrix = np.eye(3)
                 n_init_matrix = np.eye(3)
                 #init_matrix = np.eye(2)
             else:
-                n_init_matrix = n_cov_mat[t-1, f]
                 sp_init_matrix = sp_cov_mat[t - 1, f]
+                n_init_matrix = n_cov_mat[t - 1, f]
             sp_x = sp_power[:, f, t]
             n_x = n_power[:, f, t]
             sp_init_matrix = alpha * sp_init_matrix + ((1 - alpha) * np.einsum('i,j->ij', sp_x, sp_x.conj()))
             n_init_matrix = alpha * n_init_matrix + ((1 - alpha) * np.einsum('i,j->ij', n_x, n_x.conj()))
-            n_cov_mat[t, f] = n_init_matrix
             sp_cov_mat[t, f] = sp_init_matrix
+            n_cov_mat[t, f] = n_init_matrix
             # eigenvector used as steering vector
             # eigenvector element wise
-            eigenvector, _ = np.linalg.eig(sp_cov_mat[t, f])
-            eigenvector = eigenvector[:, np.newaxis]
+            eigenvalues, eigenvectors = np.linalg.eigh(sp_cov_mat[t, f])
+            eigenvector = eigenvectors[:, -1][:, np.newaxis]
             eigen_mat[t, f] = eigenvector
             # invert element wise
             n_inv_cov = np.linalg.inv(n_cov_mat[t, f])
@@ -368,8 +368,6 @@ def main():
     #print(sp_power[0].shape)
     #print(sp_freqs.shape)
     #print(sp_times.shape)
-
-    # TODO: fix filter? noise gets reduced, but speech rather not.
 
     show_spectrogram(n_power[0], n_freqs, n_times, "noise channel 0 spectrogram")
     show_spectrogram(n_power[1], n_freqs, n_times, "noise channel 1 spectrogram")
