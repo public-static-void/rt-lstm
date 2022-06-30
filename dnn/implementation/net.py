@@ -12,13 +12,14 @@ Topic         : Net module of the LSTM RNN Project
 
 import pytorch_lightning as pl
 import torch.nn.functional as F
+from pytorch_lightning.callbacks import EarlyStopping
 
 
 # Hyper-parameters
 input_size = 512  # TODO: specify input size.
 hidden_size_1 = 256
 hidden_size_2 = 128
-output_size = 1
+output_size = 2  # 2 channels: 1 Re 1 Im. TODO: how to ensure each part ends up wherre it belongs?
 batch_size = 512
 num_epochs = 5  # TODO: specify number of epochs.
 learning_rate = 0.001
@@ -26,7 +27,7 @@ num_workers = 4
 num_devices = 1
 device = 'gpu'
 is_test_run = False
-
+early_stopping = EarlyStopping(monitor='val_loss', patience=2, mode='min')  # Early stopping callback.
 
 class LitNeuralNet(pl.LightningModule):
     def __init__(self, input_size, hidden_size_1, hidden_size_2, output_size):
@@ -38,17 +39,15 @@ class LitNeuralNet(pl.LightningModule):
         self.lstm2 = nn.LSTM(hidden_size_1, hidden_size_2)
         # Dense (= Fully connected) layer.
         self.dense = nn.linear(hidden_size_2, output_size)
-        # Rectified RELU.
-        self.relu = nn.RReLU()
+        # Tanh layer.
+        self.tanh = nn.Tanh(output_size, output_size)
 
     def forward(self, x):
         out = self.lstm1(x)
         out = self.lstm2(out)
         out = self.linear(out)
-        out = self.relu(out)
+        out = self.tanh(out)
 
-        # Sigmoid activation and no softmax at the end.
-        out = F.sigmoid(out)
         return out
 
     def training_step(self, batch, batch_idx):
@@ -109,7 +108,8 @@ def main():
     # Running in fast_dev_run mode: will run a full train, val, test and
     # prediction loop using 1 batch(es).
     trainer = pl.Trainer(fast_dev_run=is_test_run, accelerator=device,
-                         devices=num_devices, max_epochs=num_epochs)
+                         devices=num_devices, max_epochs=num_epochs,
+                         enable_checkpointing=True, callbacks=[early_stopping])
     model = LitNeuralNet(input_size, hidden_size, num_classes)
     print(model)
     trainer.fit(model)
