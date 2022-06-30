@@ -36,13 +36,16 @@ class LitNeuralNet(pl.LightningModule):
         self.lstm1 = nn.LSTM(input_size, hidden_size_1)
         # LSTM Forward layer 2.
         self.lstm2 = nn.LSTM(hidden_size_1, hidden_size_2)
-        # Dense layer with Rectified RELU.
-        self.relu2 = nn.RReLU()
+        # Dense (= Fully connected) layer.
+        self.dense = nn.linear(hidden_size_2, output_size)
+        # Rectified RELU.
+        self.relu = nn.RReLU()
 
     def forward(self, x):
         out = self.lstm1(x)
         out = self.lstm2(out)
-        out = self.relu2(out)
+        out = self.linear(out)
+        out = self.relu(out)
 
         # Sigmoid activation and no softmax at the end.
         out = F.sigmoid(out)
