@@ -27,7 +27,10 @@ num_workers = 4
 num_devices = 1
 device = 'gpu'
 is_test_run = False
+# Callbacks/Checkpoints.
 early_stopping = EarlyStopping(monitor='val_loss', patience=2, mode='min')  # Early stopping callback.
+checkpoint_callback = ModelCheckpoint(save_top_k=2, monitor='val_loss')
+
 
 class LitNeuralNet(pl.LightningModule):
     def __init__(self, input_size, hidden_size_1, hidden_size_2, output_size):
@@ -109,11 +112,12 @@ def main():
     # prediction loop using 1 batch(es).
     trainer = pl.Trainer(fast_dev_run=is_test_run, accelerator=device,
                          devices=num_devices, max_epochs=num_epochs,
-                         enable_checkpointing=True, callbacks=[early_stopping])
+                         enable_checkpointing=True, callbacks=[early_stopping,
+                                                               checkpoint_callback])
     model = LitNeuralNet(input_size, hidden_size, num_classes)
     print(model)
     trainer.fit(model)
-
+    checkpoint_callback.best_model_path
 
 if __name__ == '__main__':
     main()
