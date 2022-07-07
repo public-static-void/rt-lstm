@@ -59,6 +59,7 @@ class LitNeuralNet(pl.LightningModule):
 
     def validation_step(self, batch, batch_idx):
         clean, noise, mix = batch
+        # dimensionen: batch, channel, frequency, time
         #input = input.reshape(-1, input_size)
 
         # Forward pass.
