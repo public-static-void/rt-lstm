@@ -53,10 +53,10 @@ class CustomDataset(Dataset):
                     imag[i,j]=clean_power[i,j].imag
             return np.concatenate((real, imag))
 
-
-        clean_split_concatenate = split_power(clean_power)
-        noise_split_concatenate = split_power(noise_power)
-        mixture_split_concatenate = split_power(mixture_power)
+        #TODO: Überlegen wie wir das richtige Label für Mixxture berechnen...
+        clean_split_concatenate = np.array((plit_power(clean_power), 1))
+        noise_split_concatenate = np.array((split_power(noise_power), -1))
+        mixture_split_concatenate = np.array((split_power(mixture_power), 0))
 
         #print(clean_split_concatenate)
         #print(noise_split_concatenate)
