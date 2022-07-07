@@ -1,5 +1,14 @@
 
+
 MULTICHANNEL SPEECH ENHANCEMENT BASED ON TIME-FREQUENCY MASKING USING SUBBAND LONG SHORT-TERM MEMORY
+
+Division for work:
+
+1. Room-Simulation and Input-Data for the NN (training data) as STFT
+2. NN with layers as desribed at the bottom
+3. Output signal generation, evaluation of the NN with performance measures
+
+
 
 >>> Excerpt:
 
@@ -178,7 +187,7 @@ MULTICHANNEL SPEECH ENHANCEMENT BASED ON TIME-FREQUENCY MASKING USING SUBBAND LO
                 output size : 128
             > dense, sigmoid activation, output layer:
                 input       : ?
-                input size  : ?
+                input size  : 128
                 output      : M(t)
                 output size : 1
         > output vector of second LSTM layer is transformed to output target,
@@ -195,6 +204,29 @@ MULTICHANNEL SPEECH ENHANCEMENT BASED ON TIME-FREQUENCY MASKING USING SUBBAND LO
 
 
 
+
+
+
+
+wenn das array gedreht wird
+sprecher mit drehen
+
+spacialized clean mit wenig reverb
+
+in pyroomaccoustics
+max order auf null setzen
+dann hat man nur laufzeit verzögrung zu den mikrofonen
+aber nicht einkanälige signale nehmen
+
+störquellen nicht zu nah an sprecher
+
+immer die selbe mikrofonanordung nehmen
+
+in hdf5 datei speichern?
+dateityp zum speichern von grossen arrays
+oder: ordner mit dateien, vorteil: anhörbar
+
+dataset klasse von pytorch
 
 
 
