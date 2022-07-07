@@ -24,9 +24,9 @@ class CustomDataset(Dataset):
         self.data_mixture = np.sort(np.array(glob.glob(self.data_dir+"/*mixture.wav")))
 
 
-        
+        #TODO: *3?
     def __len__(self):
-        return self.data_clean.shape[0]*3
+        return self.data_clean.shape[0]
 
     
     #TODO: Kontrolliere Fensterbreite... 256?
