@@ -10,8 +10,9 @@ Description   : Master's Project "Source Separation for Robot Control"
 Topic         : Training module of the LSTM RNN Project
 """
 
+import pytorch_lightning as pl
 from net import LitNeuralNet
-import hyperparameters
+import hyperparameters as hp
 
 def main():
 
@@ -19,14 +20,16 @@ def main():
 
     # Running in fast_dev_run mode: will run a full train, val, test and
     # prediction loop using 1 batch(es).
-    trainer = pl.Trainer(fast_dev_run=is_test_run, accelerator=device,
-                         devices=num_devices, max_epochs=num_epochs,
-                         enable_checkpointing=True, callbacks=[early_stopping,
-                                                               checkpointing],
-                         log_every_n_steps=1, logger=tb_logger)
-    model = LitNeuralNet(input_size, hidden_size, num_classes)
-    # print(model)
-    trainer.fit(model, LitNeuralNet.train_dataloader, LitNeuralNet.val_dataloader)
+    trainer = pl.Trainer(fast_dev_run=hp.is_test_run, accelerator=hp.device,
+                         devices=hp.num_devices, max_epochs=hp.num_epochs,
+                         enable_checkpointing=True, callbacks=[hp.early_stopping,
+                                                               hp.checkpointing],
+                         log_every_n_steps=1, logger=hp.tb_logger)
+    model = LitNeuralNet(hp.input_size, hp.hidden_size_1, hp.hidden_size_2,
+                         hp.output_size)
+    print(model)
+    trainer.fit(model)
+    #trainer.fit(model, LitNeuralNet.train_dataloader, LitNeuralNet.val_dataloader)
 
 if __name__ == '__main__':
     main()

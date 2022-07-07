@@ -10,13 +10,12 @@ Description   : Master's Project "Source Separation for Robot Control"
 Topic         : Net module of the LSTM RNN Project
 """
 
-import pytorch_lightning as pl
+import torch
+import torch.nn as nn
 import torch.nn.functional as F
-from pytorch_lightning.callbacks import EarlyStopping
-from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning import loggers as pl_loggers
-import hyperparameters
-from dataset import CustomDataset
+import pytorch_lightning as pl
+import hyperparameters as hp
+import torchvision.transforms as transforms
 
 class LitNeuralNet(pl.LightningModule):
     def __init__(self, input_size, hidden_size_1, hidden_size_2, output_size):
@@ -27,9 +26,9 @@ class LitNeuralNet(pl.LightningModule):
         # LSTM Forward layer 2.
         self.lstm2 = nn.LSTM(hidden_size_1, hidden_size_2)
         # Dense (= Fully connected) layer.
-        self.dense = nn.linear(hidden_size_2, output_size)
+        self.dense = nn.Linear(hidden_size_2, output_size)
         # Tanh layer.
-        self.tanh = nn.Tanh(output_size, output_size)
+        self.tanh = nn.Tanh()
 
     def forward(self, x):
         out = self.lstm1(x)
@@ -41,7 +40,7 @@ class LitNeuralNet(pl.LightningModule):
 
     def configure_optimizers(self):
         # Adam optimizer.
-        return torch.optim.Adam(self.parameters(), lr=learning_rate)
+        return torch.optim.Adam(self.parameters(), lr=hp.learning_rate)
 
     def training_step(self, batch, batch_idx):
         input, labels = batch
@@ -80,26 +79,29 @@ class LitNeuralNet(pl.LightningModule):
         return self(batch)
 
     def train_dataloader(self):
-        train_dataset = CustomDataset(root=DATA_DIR,
-                                      type='training',
-                                      transform=transforms.ToTensor(),
-                                      download=False)
+        train_dataset = hp.CustomDataset(type='training')
 
         train_loader = torch.utils.data.DataLoader(dataset=train_dataset,
-                                                   batch_size=batch_size,
-                                                   num_workers=num_workers,
+                                                   batch_size=hp.batch_size,
+                                                   num_workers=hp.num_workers,
                                                    shuffle=True)
         return train_loader
 
     def val_dataloader(self):
-        val_dataset = CustomDataset(root=DATA_DIR,
-                                    type='training',
-                                    transform=transforms.ToTensor(),
-                                    download=False)
+        val_dataset = hp.CustomDataset(type='validation')
 
         val_loader = torch.utils.data.DataLoader(dataset=val_dataset,
-                                                 batch_size=batch_size,
-                                                 num_workers=num_workers,
+                                                 batch_size=hp.batch_size,
+                                                 num_workers=hp.num_workers,
                                                  shuffle=False)
         return val_loader
+
+    def test_dataloader(self):
+        test_dataset = hp.CustomDataset(type='test')
+
+        test_loader = torch.utils.data.DataLoader(dataset=test_dataset,
+                                                 batch_size=hp.batch_size,
+                                                 num_workers=hp.num_workers,
+                                                 shuffle=False)
+        return test_loader
 

@@ -10,19 +10,27 @@ Description   : Master's Project "Source Separation for Robot Control"
 Topic         : Hyperparameters module of the LSTM RNN Project
 """
 
+import pytorch_lightning as pl
+import torch.nn as nn
+import torch.nn.functional as F
+from dataset import CustomDataset
+from pytorch_lightning import loggers as pl_loggers
+from pytorch_lightning.callbacks import EarlyStopping
+from pytorch_lightning.callbacks import ModelCheckpoint
+
 # Hyper-parameters
 input_size = 512  # TODO: specify input size.
 hidden_size_1 = 256
 hidden_size_2 = 128
 output_size = 2  # 2 channels: 1 Re 1 Im ?.
 # TODO: how to ensure each part ends up where it belongs?
-batch_size = 512
-num_epochs = 10  # TODO: specify number of epochs.
+batch_size = 1
+num_epochs = 1  # TODO: specify number of epochs.
 learning_rate = 0.001
 num_workers = 4
 num_devices = 1
 device = 'gpu'
-is_test_run = False
+is_test_run = True
 
 LOG_DIR = 'logs/'
 CHECKPOINT_DIR = 'checkpoints/'
