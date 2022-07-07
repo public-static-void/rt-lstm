@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
-import torch
 import numpy as np
 import glob
-import os
 import soundfile
 from scipy.signal import get_window
 from scipy.signal import stft
@@ -13,48 +11,54 @@ class CustomDataset(Dataset):
     def __init__(self, data_dir):
         self.data_dir = data_dir
 
-        data_clean = np.sort(np.array(glob.glob(data_dir+"/*clean.wav")))
-        data_noise = np.sort(np.array(glob.glob(data_dir+"/*noise.wav")))
-        data_mixture = np.sort(np.array(glob.glob(data_dir+"/*mixture.wav")))
+        self.data_clean = np.sort(np.array(glob.glob(data_dir+"/*clean.wav")))
+        self.data_noise = np.sort(np.array(glob.glob(data_dir+"/*noise.wav")))
+        self.data_mixture = np.sort(np.array(glob.glob(data_dir+"/*mixture.wav")))
 
-        print(data_clean)
-        print(data_noise)
-        print(data_mixture) 
 
         
     def __len__(self):
         return data_clean.shape[0]*3
 
     
-    #TODO: Kontrolliere Fensterbreite... 512?
+    #TODO: Kontrolliere Fensterbreite... 256?
     def __getitem__(self, index):
-        window1 = np.sqrt(get_window('hann', 512, fftbins=True))
+        window1 = np.sqrt(get_window('hann', 256, fftbins=True))
 
-        clean_read = soundfile.read(data_clean[index])
-        noise_read = soundfile.read(data_noise[index])
-        mixture_read = soundfile.read(data_mixture[index])
+        clean_read = soundfile.read(self.data_clean[index])
+        noise_read = soundfile.read(self.data_noise[index])
+        mixture_read = soundfile.read(self.data_mixture[index])
 
-        clean_freqs, clean_times, clean_power = stft(clean[0], clean[1], window=window1)
-        noise_freqs, noise_times, noise_power = stft(noise[0], noise[1], window=window1)
-        mixture_freqs, mixture_times, mixture_power = stft(mixture[0], mixture[1], window=window1)
-
-        clean_split_concatenate = self.split_power(clean_power)
-        noise_split_concatenate = self.split_power(noise_power)
-        mixture_split_concatenate = self.split_power(mixture_power)
+        clean_freqs, clean_times, clean_power = stft(clean_read[0], clean_read[1], window=window1)
+        noise_freqs, noise_times, noise_power = stft(noise_read[0], noise_read[1], window=window1)
+        mixture_freqs, mixture_times, mixture_power = stft(mixture_read[0], mixture_read[1], window=window1)
 
 
-    def split_power(self, power)
+        def split_power(power):
 
-        imag = np.array((clean_power.shape[2]))
-        real = np.array((clean_power.shape[2]))
-        for i,_ in enumerate(clean_power):
-            real[i]=clean_power[i].real
-            imag[i]=clean_power[i].imag
-        return np.concatenate(real, imag)
+            imag = np.zeros((clean_power.shape))
+            real = np.zeros((clean_power.shape))
+            for i in range(0,clean_power.shape[0]):
+                for j in range(0,clean_power.shape[1]):
+                    real[i,j]=clean_power[i,j].real
+                    imag[i,j]=clean_power[i,j].imag
+            return np.concatenate((real, imag))
+
+
+        clean_split_concatenate = split_power(clean_power)
+        noise_split_concatenate = split_power(noise_power)
+        mixture_split_concatenate = split_power(mixture_power)
+
+        print(clean_split_concatenate)
+        print(noise_split_concatenate)
+        print(mixture_split_concatenate)
 
 
         
 
-Dieter = CustomDataset('/informatik1/students/home/xmannwei/Beamformer/mp-2022/mp-2022/dnn/implementation/testfiles')
+        
 
- 
+Dataset = CustomDataset('/informatik1/students/home/xmannwei/Beamformer/mp-2022/mp-2022/dnn/implementation/testfiles')
+
+Dataset.__getitem__(0)
+
