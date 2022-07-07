@@ -8,22 +8,31 @@ from torch.utils.data import Dataset
 
 class CustomDataset(Dataset):
 
-    def __init__(self, data_dir):
-        self.data_dir = data_dir
+    def __init__(self, type):
+        self.type = type
 
-        self.data_clean = np.sort(np.array(glob.glob(data_dir+"/*clean.wav")))
-        self.data_noise = np.sort(np.array(glob.glob(data_dir+"/*noise.wav")))
-        self.data_mixture = np.sort(np.array(glob.glob(data_dir+"/*mixture.wav")))
+        if self.type == 'training':
+            self.data_dir = './soundfiles/training'
+        else:
+            if self.type == 'validation':
+                self.data_dir = './soundfiles/calidation'
+            else:
+                self.data_dir = './soundfiles/test'
+
+        self.data_clean = np.sort(np.array(glob.glob(self.data_dir+"/*clean.wav")))
+        self.data_noise = np.sort(np.array(glob.glob(self.data_dir+"/*noise.wav")))
+        self.data_mixture = np.sort(np.array(glob.glob(self.data_dir+"/*mixture.wav")))
 
 
         
     def __len__(self):
-        return data_clean.shape[0]*3
+        return self.data_clean.shape[0]*3
 
     
     #TODO: Kontrolliere Fensterbreite... 256?
     def __getitem__(self, index):
         window1 = np.sqrt(get_window('hann', 256, fftbins=True))
+
 
         clean_read = soundfile.read(self.data_clean[index])
         noise_read = soundfile.read(self.data_noise[index])
@@ -49,16 +58,20 @@ class CustomDataset(Dataset):
         noise_split_concatenate = split_power(noise_power)
         mixture_split_concatenate = split_power(mixture_power)
 
-        print(clean_split_concatenate)
-        print(noise_split_concatenate)
-        print(mixture_split_concatenate)
+        #print(clean_split_concatenate)
+        #print(noise_split_concatenate)
+        #print(mixture_split_concatenate)
+
+        return clean_split_concatenate, noise_split_concatenate, mixture_split_concatenate
+
+
 
 
         
 
         
 
-Dataset = CustomDataset('/informatik1/students/home/xmannwei/Beamformer/mp-2022/mp-2022/dnn/implementation/testfiles')
+#Dataset = CustomDataset('test')
 
-Dataset.__getitem__(0)
+#Dataset.__getitem__(0)
 
