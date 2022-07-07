@@ -15,7 +15,7 @@ class CustomDataset(Dataset):
             self.data_dir = './soundfiles/training'
         else:
             if self.type == 'validation':
-                self.data_dir = './soundfiles/calidation'
+                self.data_dir = './soundfiles/validation'
             else:
                 self.data_dir = './soundfiles/test'
 
@@ -65,11 +65,6 @@ class CustomDataset(Dataset):
         return clean_split_concatenate, noise_split_concatenate, mixture_split_concatenate
 
 
-
-
-        
-
-        
 
 #Dataset = CustomDataset('test')
 
