@@ -43,13 +43,13 @@ class LitNeuralNet(pl.LightningModule):
         return torch.optim.Adam(self.parameters(), lr=hp.learning_rate)
 
     def training_step(self, batch, batch_idx):
-        input, labels = batch
-        input = input.reshape(-1, input_size)
+        clean, noise, mix = batch
+        #input = input.reshape(-1, input_size)
 
         # Forward pass.
-        outputs = self(input)
+        outputs = self(mix)
         # MSE loss function.
-        loss = F.mse_loss(outputs, labels)
+        loss = F.mse_loss(outputs, clean)
 
         tensorboard_logs = {f'train/loss': loss}
         self.log(f'train/loss', loss, on_step=False,
@@ -58,13 +58,13 @@ class LitNeuralNet(pl.LightningModule):
         return {f'train/loss': loss, 'log': tensorboard_logs}
 
     def validation_step(self, batch, batch_idx):
-        input, labels = batch
-        input = input.reshape(-1, input_size)
+        clean, noise, mix = batch
+        #input = input.reshape(-1, input_size)
 
         # Forward pass.
         outputs = self(input)
         # MSE loss function.
-        loss = F.mse_loss(outputs, labels)
+        loss = F.mse_loss(outputs, clean)
         self.log(f'val/loss', loss, on_step=False, on_epoch=True, logger=True)
 
         return {f'val/loss': loss}
