@@ -12,12 +12,12 @@ class CustomDataset(Dataset):
         self.type = type
 
         if self.type == 'training':
-            self.data_dir = './soundfiles/training'
+            self.data_dir = './soundfiles/Training'
         else:
             if self.type == 'validation':
-                self.data_dir = './soundfiles/validation'
+                self.data_dir = './soundfiles/Validation'
             else:
-                self.data_dir = './soundfiles/test'
+                self.data_dir = './soundfiles/Test'
 
         self.data_clean = np.sort(np.array(glob.glob(self.data_dir+"/*clean.wav")))
         self.data_noise = np.sort(np.array(glob.glob(self.data_dir+"/*noise.wav")))
