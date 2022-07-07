@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+from matplotlib.pyplot import axes
 import numpy as np
 import glob
 import soundfile
@@ -31,32 +32,25 @@ class CustomDataset(Dataset):
     
     #TODO: Kontrolliere Fensterbreite... 256?
     def __getitem__(self, index):
-        window1 = np.sqrt(get_window('hann', 256, fftbins=True))
+        window1 = np.sqrt(get_window('hann', 512, fftbins=True))
 
 
         clean_read = soundfile.read(self.data_clean[index])
         noise_read = soundfile.read(self.data_noise[index])
         mixture_read = soundfile.read(self.data_mixture[index])
 
-        clean_freqs, clean_times, clean_power = stft(clean_read[0], clean_read[1], window=window1)
-        noise_freqs, noise_times, noise_power = stft(noise_read[0], noise_read[1], window=window1)
-        mixture_freqs, mixture_times, mixture_power = stft(mixture_read[0], mixture_read[1], window=window1)
+        clean_freqs, clean_times, clean_power = stft(clean_read[0], clean_read[1], window=window1, nperseg=512)
+        noise_freqs, noise_times, noise_power = stft(noise_read[0], noise_read[1], window=window1, nperseg=512)
+        mixture_freqs, mixture_times, mixture_power = stft(mixture_read[0], mixture_read[1], window=window1, nperseg=512)
+
+        #print(clean_power.shape)
+        #print(noise_power.shape)
+        #print(mixture_power.shape)
 
 
-        def split_power(power):
-
-            imag = np.zeros((clean_power.shape))
-            real = np.zeros((clean_power.shape))
-            for i in range(0,clean_power.shape[0]):
-                for j in range(0,clean_power.shape[1]):
-                    real[i,j]=clean_power[i,j].real
-                    imag[i,j]=clean_power[i,j].imag
-            return np.concatenate((real, imag))
-
-
-        clean_split_concatenate = split_power(clean_power)
-        noise_split_concatenate = split_power(noise_power)
-        mixture_split_concatenate = split_power(mixture_power)
+        clean_split_concatenate = np.concatenate((np.real(clean_power), np.imag(clean_power)), axis=0)
+        noise_split_concatenate = np.concatenate((np.real(noise_power), np.imag(noise_power)), axis=0)
+        mixture_split_concatenate = np.concatenate((np.real(mixture_power), np.imag(mixture_power)), axis=0)
 
         #print(clean_split_concatenate)
         #print(noise_split_concatenate)
