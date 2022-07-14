@@ -26,6 +26,7 @@ output_size = 2  # 2 channels: 1 Re 1 Im ?.
 n_t = None  # TODO number of time bins
 # TODO: how to ensure each part ends up where it belongs?
 batch_size = 5
+K = 1  # decompression constant for mask decompression
 num_epochs = 10  # TODO: specify number of epochs.
 learning_rate = 0.001
 num_workers = 4

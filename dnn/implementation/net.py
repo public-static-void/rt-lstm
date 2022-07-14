@@ -92,9 +92,11 @@ class LitNeuralNet(pl.LightningModule):
         return {f'avg_val/loss': avg_loss, 'log': tensorboard_logs}
 
     def predict_step(self, batch, batch_idx, dataloader_idx=0):
-        compressed_mask = self(batch)
+        comp_mask = self(batch)
+        decomp_mask = - torch.log((hp.K - comp_mask) / (hp.K + comp_mask))
         mix = batch[2]
-        prediction = compressed_mask * mix
+
+        prediction = decomp_mask * mix
         return prediction
 
 
