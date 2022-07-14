@@ -230,6 +230,7 @@ dataset klasse von pytorch
 
 
 
+input = output von tanh
+- log (1 - input / 1 + input )
 
-
-
+bevor die maske verwendet wird

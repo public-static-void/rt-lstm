@@ -23,9 +23,10 @@ input_size = 512  # TODO: specify input size.
 hidden_size_1 = 256
 hidden_size_2 = 128
 output_size = 2  # 2 channels: 1 Re 1 Im ?.
+n_t = None  # TODO number of time bins
 # TODO: how to ensure each part ends up where it belongs?
-batch_size = 1
-num_epochs = 1  # TODO: specify number of epochs.
+batch_size = 5
+num_epochs = 10  # TODO: specify number of epochs.
 learning_rate = 0.001
 num_workers = 4
 num_devices = 1
@@ -34,11 +35,12 @@ is_test_run = True
 
 LOG_DIR = 'logs/'
 CHECKPOINT_DIR = 'checkpoints/'
+CHECKPOINT_NAME = 'lstm_chkpt'
 DATA_DIR = 'soundfiles/'
 
 # LOGGING
 tb_logger = pl_loggers.TensorBoardLogger(LOG_DIR,
-                                         name='Speech Enhancement LSTM RNN',
+                                         name=CHECKPOINT_NAME,
                                          log_graph=False)
 
 # Callbacks/Checkpoints.

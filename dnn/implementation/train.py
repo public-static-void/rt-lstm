@@ -28,8 +28,8 @@ def main():
     model = LitNeuralNet(hp.input_size, hp.hidden_size_1, hp.hidden_size_2,
                          hp.output_size)
     print(model)
-    trainer.fit(model)
-    #trainer.fit(model, LitNeuralNet.train_dataloader, LitNeuralNet.val_dataloader)
+    #trainer.fit(model)
+    trainer.fit(model, LitNeuralNet.train_dataloader(model), LitNeuralNet.val_dataloader(model))
 
 if __name__ == '__main__':
     main()
