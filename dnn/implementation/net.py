@@ -24,26 +24,31 @@ class LitNeuralNet(pl.LightningModule):
         # LSTM Forward layer 1.
         self.lstm1 = nn.LSTM(input_size, hidden_size_1)
         # LSTM Forward layer 2.
-        self.lstm2 = nn.LSTM(hidden_size_1, hidden_size_2)
+        self.lstm2 = nn.LSTM(hidden_size_1, hidden_size_2, batch_first=True)
         # Dense (= Fully connected) layer.
         self.dense = nn.Linear(hidden_size_2, output_size)
         # Tanh layer.
         self.tanh = nn.Tanh()
 
     def forward(self, x):
-        out = self.lstm1(x)
-        out = self.lstm2(out)
-        out = self.linear(out)
-        out = self.tanh(out)
+        n_batch, n_stft = x.shape
 
-        return out
+        x, _ = self.lstm1(x)
+        x, _ = self.lstm2(x)
+        x = self.linear(x)
+        x = self.tanh(x)
+
+        x = x.reshape(n_batch, n_stft)
+        return x
 
     def configure_optimizers(self):
         # Adam optimizer.
         return torch.optim.Adam(self.parameters(), lr=hp.learning_rate)
 
     def training_step(self, batch, batch_idx):
+
         clean, noise, mix = batch
+
         #input = input.reshape(-1, input_size)
 
         # Forward pass.
