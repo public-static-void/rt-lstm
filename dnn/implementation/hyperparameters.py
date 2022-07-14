@@ -23,6 +23,7 @@ input_size = 512  # TODO: specify input size.
 hidden_size_1 = 256
 hidden_size_2 = 128
 output_size = 2  # 2 channels: 1 Re 1 Im ?.
+n_t = None  # TODO number of time bins
 # TODO: how to ensure each part ends up where it belongs?
 batch_size = 5
 num_epochs = 10  # TODO: specify number of epochs.
