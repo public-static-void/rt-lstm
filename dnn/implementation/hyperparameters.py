@@ -19,11 +19,10 @@ from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning.callbacks import ModelCheckpoint
 
 # Hyper-parameters
-input_size = 512  # TODO: specify input size.
+input_size = 6
 hidden_size_1 = 256
 hidden_size_2 = 128
 output_size = 2  # 2 channels: 1 Re 1 Im ?.
-n_t = None  # TODO number of time bins
 # TODO: how to ensure each part ends up where it belongs?
 batch_size = 5
 K = 1  # decompression constant for mask decompression
@@ -32,7 +31,7 @@ learning_rate = 0.001
 num_workers = 4
 num_devices = 1
 device = 'gpu'
-is_test_run = True
+is_test_run = False
 
 LOG_DIR = 'logs/'
 CHECKPOINT_DIR = 'checkpoints/'

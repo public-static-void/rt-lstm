@@ -25,7 +25,7 @@ def main():
                          enable_checkpointing=True, callbacks=[hp.early_stopping,
                                                                hp.checkpointing],
                          log_every_n_steps=1, logger=hp.tb_logger)
-    model = LitNeuralNet(hp.input_size, hp.nt, hp.hidden_size_1, hp.hidden_size_2,
+    model = LitNeuralNet(hp.input_size, hp.hidden_size_1, hp.hidden_size_2,
                          hp.output_size)
     print(model)
     #trainer.fit(model)
