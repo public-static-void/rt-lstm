@@ -1,0 +1,7 @@
+DNN-Paper Diskussion / Implementierungsplan:
+
+    Grundidee des Papers vorstellen
+    Grundlegende Netzwerkarchitektur skizzieren
+    Welche Daten fürs Training?
+    Aufteilung in Implementationsschritte (Chronologie)
+    Zuständigkeiten für Code-Elemente (Wer programmiert was? Bis wann?)

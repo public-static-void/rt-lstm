@@ -1,0 +1,236 @@
+
+
+MULTICHANNEL SPEECH ENHANCEMENT BASED ON TIME-FREQUENCY MASKING USING SUBBAND LONG SHORT-TERM MEMORY
+
+Division for work:
+
+1. Room-Simulation and Input-Data for the NN (training data) as STFT
+2. NN with layers as desribed at the bottom
+3. Output signal generation, evaluation of the NN with performance measures
+
+
+
+>>> Excerpt:
+
+    >> Goal:
+        > Multichannel speech enhancement/denoising.
+
+    >> Proposed method:
+        > Long short-term memory (LSTM) recurrent neural network.
+        > Splits signal into (time-)frequency bins (STFT).
+        > Trains common Recurrent NN (RNN) to all frequency bands.
+        > Processes each frequency band individually: Subband processing.
+        > Maps multichannel noisy STFT coefficient sequence to its
+          corresponding STFT magnitude ratio mask sequence of one
+          reference channel.
+        > In the STFT domain, for each frequency subband, a sequence of
+          multichannel noisy speech STFT coefficients is input to the
+          LSTM network, which outputs the corresponding sequence of TF
+          magnitude ratio mask for the reference channel.
+        > Exploits differences between temporal/spatial characteristics
+          of speech and noise:
+            - Speech is non-stationary and coherent.
+            - Noise is stationary and less spatially-correlated.
+        > Learned to discriminate between the spatial characteristics of
+          directional speech source and diffuse or uncorrelated noise,
+          thus it is also not sensitive to the position of speech source.
+        > Compared to other subband techniques that learn different
+          networks for different subbands, the proposed method learns one
+          network for all subbands, which encourages the network to learn
+          the information that is common to all subbands, as unsupervised
+          methods use such kind of common informations.
+        > Returns: rectified STFT magnitude ratio mask [0, 1].
+
+    >> Motivation:
+        > A large number of unsupervised speech enhancement methods
+          exploits the subband information. To the aim of speech/noise
+          discrimination and speech level estimation, the motivations of
+          the proposed method are threefold:
+            i)   The subband STFT magnitude evolution is informatic due
+                 to the stationary of noise and nonstationary of speech,
+                 which is the foundation for the unsupervised single-
+                 channel noise power estimators and multichannel relative
+                 transfer function estimators. Subband LSTM network is
+                 able to accomplish single-channel noise power
+                 estimation.
+            ii)  The spatial characteristics of directional speech source
+                 and diffuse or uncorrelated noise are different, namely
+                 speech source is coherent and noise is less correlated,
+                 which is the foundation for the speech enhancement
+                 methods like coherent-to-diffuse power ratio. Moreover,
+                 it is possible for LSTM network to exploit the temporal
+                 dynamic of spatial correlation to improve the
+                 perfomance.
+            iii) Spatial filtering techniques, e.g. beamforming and
+                 multichannel Wiener filter, are performed in subband.
+
+    >> Performance metrics:
+        > Evaluate speech enhancement performance:
+            - Perceptual evaluation of speech quality (PESQ): evaluates
+              quality of enhanced signal in terms of both noise reduction
+              and speech distortion.
+            - Short-time objective intelligibility (STOI): highly
+              correlates with speech intelligibility.
+
+    >> Results:
+        > Outperforms baseline deep-learning-based full-band method and
+        unsupervised method.
+        > Generalizes well to unseen speakers and noise types.
+            - Because it does not learn the wideband spectral structure
+                of either speech or noise.
+
+    >> General notes:
+        > The output target consists of either the clean speech
+          (logarithm) spectral vector or an TF binary (or ratio) mask
+          vector to be applied on the corresponding noisy speech frame.
+        > For multichannel speech enhancement, it is popular to combine
+          supervised monaural techniques and unsupervised beamforming
+          techniques.
+        > To exploit spatial information, interchannel features
+          (sometimes combined with spectral features), e.g. time/phase/
+          level difference (ITD/IPD/ILD) and cross correlation function
+          (CCF), are input to the neural network for full-band TF mask
+          prediction.
+
+>>> Questions:
+
+    > "An LSTM network common to all frequency bands is trained, which
+       processes each frequency band individually"
+        - Q: How does it achieve this at the same time?
+        - A: In the STFT domain, for each frequency subband, a sequence
+        of multichannel noisy speech STFT coefficients is input to the
+        LSTM network, which outputs the corresponding sequence of TF
+        magnitude ratio mask for the reference channel. This process is
+        applied for all frequency subbands with the same unique LSTM
+        network.
+
+    > "The training process was early-stopped with two epochs patience.":
+        - Q: What do "early-stopped" and "patience" mean in this context?
+        - A1: Early-stopping: A form of regularization used to avoid
+        overfitting when training a learner with an iterative method,
+        such as gradient descent. Early stopping rules provide guidance
+        as to how many iterations can be run before the learner begins to
+        over-fit.
+        - A2: Patience is the number of epochs for the training to be
+        continued after the first halt. The model waits for patience
+        number of epochs for any improvement in the model.
+
+    > "To avoid the problem of exponential weight decay (or explosion)
+      along time steps, LSTM introduces an extra memory cell, which
+      conveys the information along time step respectively to the hidden
+      units."
+        - Q: Is this visualized in the diagram (fig. 1)? Where?
+
+    > "Fig. 1 shows the network diagram, where two networks, i.e.
+      unidirectional and bidirectional LSTM (BLSTM) networks, are
+      presented, which both will be trained and tested in this work."
+        - Q: Which one is uni- and which one is bidirectional? Where
+          exactly are they visualized in the diagram?
+        - A1: "The unidirectional (forward) LSTM is presented with solid blocks/lines. The full diagram composed of both forward and backward networks presents
+          the bidirectional LSTM network"
+
+
+	• Welche Daten fürs Training?
+
+		○  real data of CHiME3 Dataset (mit 6 mics in tablet erstellt) --> noise free speech
+			- Training, development, evlauation dataset von 3 verschiedenen Sprechergruppen mit je 4 Sprechern recorded
+			- Noise an 4 verschiedenen Orten aufgenommen für 30 Min.
+				□ Jedes noise set gesplittet in training, validation and test data
+			- Noise und speech wurden dann gemixt (noise sets random ausgewählt)
+
+>>> Architecture:
+
+    >> Signal Model:
+        > Complex valued STFT coefficients : x_i(k,t) = s_i(k,t) + u_i(k,t)
+        > Mic/channel indices              : i = 1,...,I
+        > Frequenciy indices               : k = 0,...,K
+        > Time indices                     : t = 1,...,T
+
+    >> Input Feature:
+        > For one STFT bin real (R(.)) and imaginary (I(.)) parts are concatenated
+          to a vector:
+            x(k, t) = [R(x_1(k,t)),I(x_1(k,t)),...,R(x_I(k,t)),I(x_I(k,t))]^T
+        > A sequence of such vectors is taken as input sequence of LSTM network:
+            ~X(k) = (x(k,1),...,x(k,t),...,x(k,T))
+            T denotes number of time steps of LSTM network.
+        > To facilitate network training input sequence has to be normalized to
+          equalize input level:
+            mean of STFT magnitude of reference channel:
+            mu(k) = 1/T sum^T_t=1 |x_r(k,t)| to 1 where |.| denotes modulus.
+                QUESTION: does "|.| denotes modulus" mean division with remainder?
+            Accordingly, input sequence is normalized as:
+                X(k) = ~X(k) / mu(k)
+
+    >> Output target:
+        > For one TF bin rectified STFT magnitude ratio mask is taken as target:
+            M(k,t) = min(|(s_r(k,t)) / (x_r(k,t))| , 1)
+            Mask is rectified to range [0, 1].
+        > Target sequence is:
+            M(k) = (M(k,1),...,M(k,t),...,M(k,T)).
+        > During test, predicted output ^M(k,t) is used to estimate speech STFT
+          coefficients as ^s(k,t) = ^M(k,t)x_r(k,t).
+
+    >> LSTM network:
+        > RNN transmits hidden units (layers?) along time step.
+        > Extra memory cell to avoid weight decay along time steps
+            conveys information along time step respectively to hidden units.
+        > input -> 2 forward layers -> dense layer -> sigmoid layer -> output
+            > input, 1. forward layer:
+                input       : x(t)
+                input size  : 2I
+                output      : ?
+                output size : 256
+            > 2. forward layer:
+                input       : ?
+                input size  : 256
+                output      : ?
+                output size : 128
+            > dense, sigmoid activation, output layer:
+                input       : ?
+                input size  : 128
+                output      : M(t)
+                output size : 1
+        > output vector of second LSTM layer is transformed to output target,
+          i.e. rectified magnitude ratio mask, through a dense layer with sigmoid
+          activation.
+        > The mean squared error (MSE), i.e. (M(k, t) − ^M(k, t))^2 ,
+          is used as the training cost.
+
+
+
+
+
+
+
+
+
+
+
+
+
+wenn das array gedreht wird
+sprecher mit drehen
+
+spacialized clean mit wenig reverb
+
+in pyroomaccoustics
+max order auf null setzen
+dann hat man nur laufzeit verzögrung zu den mikrofonen
+aber nicht einkanälige signale nehmen
+
+störquellen nicht zu nah an sprecher
+
+immer die selbe mikrofonanordung nehmen
+
+in hdf5 datei speichern?
+dateityp zum speichern von grossen arrays
+oder: ordner mit dateien, vorteil: anhörbar
+
+dataset klasse von pytorch
+
+
+
+input = output von tanh
+- log (1 - input / 1 + input )
+
+bevor die maske verwendet wird
