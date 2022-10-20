@@ -102,19 +102,30 @@ class LitNeuralNet(pl.LightningModule):
 
     #def predict_step(self, batch, batch_idx, dataloader_idx=0):
     def predict_step(self, batch, batch_idx):
-       
+
         clean, noise, mix = batch
 
         clean = clean.float()
         noise = noise.float()
         mix = mix.float()
 
-        mix2 = clean + noise
-
         comp_mask = self(mix)
         decomp_mask = -torch.log((hp.K - comp_mask) / (hp.K + comp_mask))
 
-        prediction = decomp_mask * mix2
+        # TODO: merge real and imaginary parts of mix (and mask) before multiplication with mask.
+
+        #real =
+        #imag =
+
+        #complex = torch.complex(real, imag)
+
+        #mix_complex =
+        #decomp_mask_complex =
+
+        mix_complex = None
+        decomp_mask_complex = None
+
+        prediction = decomp_mask_complex * mix_complex
         return prediction
 
     def train_dataloader(self):
