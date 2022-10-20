@@ -30,17 +30,16 @@ learning_rate = 0.001
 num_workers = 4
 num_devices = 1
 device = "gpu"
+# Running in fast_dev_run mode: will run a full train, val, test and
+# prediction loop using 1 batch(es).
 is_test_run = False
 
 LOG_DIR = "logs/"
 CHECKPOINT_DIR = "checkpoints/"
-CHECKPOINT_NAME = "lstm_chkpt"
 DATA_DIR = "soundfiles/"
 
 # LOGGING
-tb_logger = pl_loggers.TensorBoardLogger(
-    LOG_DIR, name=CHECKPOINT_NAME, log_graph=False
-)
+tb_logger = pl_loggers.TensorBoardLogger(LOG_DIR, log_graph=False)
 
 # Callbacks/Checkpoints.
 early_stopping = EarlyStopping(monitor="val/loss", patience=5, mode="min")
@@ -48,6 +47,7 @@ checkpointing = ModelCheckpoint(
     dirpath=CHECKPOINT_DIR,
     filename="{epoch}-{step}",
     save_top_k=2,
+    mode="min",
     monitor="val/loss",
     every_n_epochs=1,
 )

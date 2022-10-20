@@ -18,9 +18,9 @@ from net import LitNeuralNet
 def main():
     # load model
     trained_model = LitNeuralNet.load_from_checkpoint(
-        checkpoint_path=hp.CHECKPOINT_DIR + hp.CHECKPOINT_NAME
+        # checkpoint_path=hp.CHECKPOINT_DIR + hp.CHECKPOINT_NAME
+        checkpoint_path=hp.checkpointing.best_model_path
     )
-    # checkpoint_path=hp.checkpointing.best_model_path)
 
     # predict
     trained_model.eval()
