@@ -19,7 +19,8 @@ def main():
     # load model
     trained_model = LitNeuralNet.load_from_checkpoint(
         # checkpoint_path=hp.CHECKPOINT_DIR + hp.CHECKPOINT_NAME
-        checkpoint_path=hp.checkpointing.best_model_path
+        #checkpoint_path=hp.checkpointing.best_model_path
+        checkpoint_path="checkpoints/epoch=1-step=12.ckpt"
     )
 
     # predict
@@ -36,7 +37,9 @@ def main():
         log_every_n_steps=1,
         logger=hp.tb_logger,
     )
-    predictions = trainer.predict(trained_model, LitNeuralNet.test_dataloader)
+
+    #predictions = trainer.predict(trained_model, LitNeuralNet.test_dataloader, ckpt_path='best')
+    predictions = trainer.predict(trained_model, LitNeuralNet.test_dataloader(trained_model))
 
 
 if __name__ == "__main__":

@@ -33,6 +33,7 @@ class LitNeuralNet(pl.LightningModule):
         self.dense = nn.Linear(hidden_size_2, output_size)
         # Tanh layer.
         self.tanh = nn.Tanh()
+        self.save_hyperparameters()
 
     def forward(self, x):
         # lstm1: [b, 2ch, f, t] -> [b*f, t, 2c]
@@ -41,7 +42,6 @@ class LitNeuralNet(pl.LightningModule):
         # tanh:  -> [b*f, t, 2]
         # reshape zum ausgangsshape [b, 2, f, t]
         # x = x.float()
-        print(x.shape)
         n_batch, n_ch, n_f, n_t = x.shape
         x = x.permute(0, 2, 3, 1)
         x = x.reshape(n_batch * n_f, n_t, n_ch)
@@ -100,12 +100,21 @@ class LitNeuralNet(pl.LightningModule):
 
         return loss
 
-    def predict_step(self, batch, batch_idx, dataloader_idx=0):
-        comp_mask = self(batch)
-        decomp_mask = -torch.log((hp.K - comp_mask) / (hp.K + comp_mask))
-        mix = batch[2]
+    #def predict_step(self, batch, batch_idx, dataloader_idx=0):
+    def predict_step(self, batch, batch_idx):
+       
+        clean, noise, mix = batch
 
-        prediction = decomp_mask * mix
+        clean = clean.float()
+        noise = noise.float()
+        mix = mix.float()
+
+        mix2 = clean + noise
+
+        comp_mask = self(mix)
+        decomp_mask = -torch.log((hp.K - comp_mask) / (hp.K + comp_mask))
+
+        prediction = decomp_mask * mix2
         return prediction
 
     def train_dataloader(self):
