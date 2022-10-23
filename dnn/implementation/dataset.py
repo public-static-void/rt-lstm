@@ -81,19 +81,39 @@ class CustomDataset(Dataset):
         noise_split_concatenate = torch.stack((torch.real(noise_stft), torch.imag(noise_stft)), dim=0)
         mixture_split_concatenate = torch.cat((torch.real(mixture_stft), torch.imag(mixture_stft)), dim=0)
 
+        #print(mixture_split_concatenate.shape)
+
+        #real = torch.chunk(mixture_split_concatenate, 2, 0)[0]
+        #imag = torch.chunk(mixture_split_concatenate, 2, 0)[1]
+
+        #print(real.shape)
+        #print(imag.shape)
+
+        #mixture_split_concatenate = torch.complex(real, imag)
+
 
         #print(clean_split_concatenate.shape)
         #print(noise_split_concatenate.shape)
         #print(mixture_split_concatenate.shape)
 
         return clean_split_concatenate, noise_split_concatenate, mixture_split_concatenate
+    
+    def __merge_to_complex__(self, tensor_to_merge):
+        real = torch.chunk(tensor_to_merge, 2, 1)[0]
+        imag = torch.chunk(tensor_to_merge, 2, 1)[1]
+        return torch.complex(real, imag)
+        
+        
 
 
 
 #Dataset = CustomDataset('Test')
 
 #Dataset.__getitem__(3)
-#Dataset.__getitem__(5)
-#Dataset.__getitem__(7)
+
+
+
+
+
 
 
