@@ -122,7 +122,7 @@ class LitNeuralNet(pl.LightningModule):
         mix_co = torch.complex(mix_re, mix_im)
         mask_co = torch.complex(mask_re, mask_im)
 
-        prediction = mask_co[0] * mix_co
+        prediction = mask_co * mix_co[0]
         return prediction
 
     def train_dataloader(self):
