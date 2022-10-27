@@ -42,5 +42,6 @@ def main():
     predictions = trainer.predict(trained_model, LitNeuralNet.test_dataloader(trained_model))
 
 
+
 if __name__ == "__main__":
     main()

@@ -25,8 +25,8 @@ output_size = 2  # 2 channels: 1 Re 1 Im ?.
 # TODO: how to ensure each part ends up where it belongs?
 batch_size = 5
 K = 1  # decompression constant for mask decompression
-num_epochs = 10  # TODO: specify number of epochs.
-learning_rate = 0.001
+num_epochs = 100  # TODO: specify number of epochs.
+learning_rate = 0.0001
 num_workers = 4
 num_devices = 1
 device = "gpu"
@@ -42,7 +42,7 @@ DATA_DIR = "soundfiles/"
 tb_logger = pl_loggers.TensorBoardLogger(LOG_DIR, log_graph=False)
 
 # Callbacks/Checkpoints.
-early_stopping = EarlyStopping(monitor="val/loss", patience=5, mode="min")
+early_stopping = EarlyStopping(monitor="val/loss", patience=10, mode="min")
 checkpointing = ModelCheckpoint(
     dirpath=CHECKPOINT_DIR,
     filename="{epoch}-{step}",

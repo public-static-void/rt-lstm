@@ -16,6 +16,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torchvision.transforms as transforms
+from torchmetrics import ScaleInvariantSignalDistortionRatio as SI_SDR
 
 
 class LitNeuralNet(pl.LightningModule):
@@ -43,17 +44,18 @@ class LitNeuralNet(pl.LightningModule):
         # reshape zum ausgangsshape [b, 2, f, t]
         # x = x.float()
         n_batch, n_ch, n_f, n_t = x.shape
-        x = x.permute(0, 2, 3, 1)
-        x = x.reshape(n_batch * n_f, n_t, n_ch)
+        x = x.permute(0, 3, 2, 1)
+        x = x.reshape(n_batch * n_t, n_f, n_ch)
         x, _ = self.lstm1(x)
+        x = x.reshape(n_batch, n_t, n_f, self.hidden_size_1)
+        x = x.permute(0, 2, 1, 3)
         x = x.reshape(n_batch * n_f, n_t, self.hidden_size_1)
         x, _ = self.lstm2(x)
-        x = x.reshape(n_batch * n_f, n_t, self.hidden_size_2)
+        x = x.reshape(n_batch, n_f, n_t, self.hidden_size_2)
+
         x = self.dense(x)
-        x = x.reshape(n_batch * n_f, n_t, 2)
-        x = self.tanh(x)
-        x = x.reshape(n_batch, n_f, n_t, 2)
         x = x.permute(0, 3, 1, 2)
+        x = self.tanh(x)
 
         # output = komprimierte maske
         return x
@@ -97,6 +99,9 @@ class LitNeuralNet(pl.LightningModule):
         # MSE loss function.
         loss = F.mse_loss(outputs, clean)
         self.log(f"val/loss", loss, on_step=False, on_epoch=True, logger=True)
+        si_sdr = SI_SDR().to("cuda")
+        si_sdr_val = si_sdr(outputs, clean)
+        self.log(f"val/si_sdr", si_sdr_val, on_step=False, on_epoch=True, logger=True)
 
         return loss
 
@@ -123,6 +128,16 @@ class LitNeuralNet(pl.LightningModule):
         mask_co = torch.complex(mask_re, mask_im)
 
         prediction = mask_co * mix_co[0]
+
+        # generate spectrograms and sound files for mix, clean and prediction,
+        # and add them to tensorboard.
+
+        # wavs
+
+
+
+        # spectrograms
+
         return prediction
 
     def train_dataloader(self):
