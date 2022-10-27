@@ -16,3 +16,8 @@ class Inverse_stft_and_more():
         window1 = torch.from_numpy(np.sqrt(get_window('hann', self.stft_length, fftbins=True)))
 
         istft_signal = torch.istft(torch.from_numpy(signal), self.stft_length, self.stft_shift, window = window1)
+
+    def __merge_to_complex__(self, tensor_to_merge):
+        real = torch.chunk(tensor_to_merge, 2, 1)[0]
+        imag = torch.chunk(tensor_to_merge, 2, 1)[1]
+        return torch.complex(real, imag)
