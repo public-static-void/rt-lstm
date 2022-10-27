@@ -1,15 +1,20 @@
 #!/usr/bin/env python3
-from random import sample
-from matplotlib.pyplot import axes
-import numpy as np
 import glob
-from pandas import cut
+from random import sample
+
+import numpy as np
 import soundfile
-from scipy.signal import get_window
-from scipy.signal import stft
 import torch
+from matplotlib.pyplot import axes
+from pandas import cut
+from scipy.signal import get_window, stft
 from torch.utils.data import Dataset
 
+"""This Dataset class is used to get single files from certain directories.
+
+Returns:
+        _type_: _tensor_
+"""
 class CustomDataset(Dataset):
 
     def __init__(self, type, stft_lenght=512, stft_shift=256):
@@ -31,12 +36,18 @@ class CustomDataset(Dataset):
         self.data_mixture = np.sort(np.array(glob.glob(self.data_dir+"/*mixture.wav")))
         self.sample_rate = 16000
 
-
-        #TODO: *3?
+    
+    
+        """Defines the length of one file
+        """
     def __len__(self):
         return self.data_clean.shape[0]
 
+        """Function to cut a soundfile into a variable number of seconds.
 
+        Returns: NDArray[Float64]
+
+        """
     def __cut__(self, sound, sec:int):
         samples_to_take = sec * self.sample_rate
         if samples_to_take > sound.shape[0]:
@@ -50,6 +61,10 @@ class CustomDataset(Dataset):
 
         return sound_cut
 
+
+        """This function reads in the soundfiles, uses __cut__ and transforms the signal into the frequency are via stft.
+        Then the complex values of the clean, noisy and mixed signal are getting split into real and imaginary parts. This parts are getting concatinated.
+        """
     def __getitem__(self, index):
         window1 = torch.from_numpy(np.sqrt(get_window('hann', self.stft_length, fftbins=True)))
 
