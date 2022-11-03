@@ -20,7 +20,7 @@ def main():
     trained_model = LitNeuralNet.load_from_checkpoint(
         # checkpoint_path=hp.CHECKPOINT_DIR + hp.CHECKPOINT_NAME
         #checkpoint_path=hp.checkpointing.best_model_path
-        checkpoint_path="checkpoints/epoch=12-step=1560.ckpt"
+        checkpoint_path="checkpoints/epoch=13-step=2800.ckpt"
     )
 
     # predict
