@@ -106,6 +106,8 @@ class LitNeuralNet(pl.LightningModule):
         # Forward pass.
         outputs = self(mix)
         # MSE loss function.
+        # print(torch.chunk(clean, 3, 1)[0].shape)
+
         loss = F.mse_loss(outputs, clean)
         self.log(f"val/loss", loss, on_step=False, on_epoch=True, logger=True)
         si_sdr = SI_SDR().to("cuda")
@@ -140,27 +142,27 @@ class LitNeuralNet(pl.LightningModule):
             clean_istft = torch.istft(clean_co[sample], stft_length, stft_shift, window = window1)
             pred_istft = torch.istft(prediction[sample], stft_length, stft_shift, window = window1)
 
-            writer.add_audio("mix-"+ batch_idx + "-" + sample, mix_istft, self.current_epoch)
-            writer.add_audio("clean-"+ batch_idx + "-" + sample, clean_istft, self.current_epoch)
-            writer.add_audio("pred-"+ batch_idx + "-" + sample, pred_istft, self.current_epoch)
+            writer.add_audio("mix-"+ str(batch_idx) + "-" + str(sample), mix_istft[0], self.current_epoch)
+            writer.add_audio("clean-"+ str(batch_idx) + "-" + str(sample), clean_istft[0], self.current_epoch)
+            writer.add_audio("pred-"+ str(batch_idx) + "-" + str(sample), pred_istft[0], self.current_epoch)
 
             mix_spec = 10 * torch.log10(
                 torch.maximum(torch.square(torch.abs(mix_co[sample])),
-                              (10 ** (-15)) * torch.ones_like(combined_stfts,
+                              (10 ** (-15)) * torch.ones_like(mix_co[sample],
                                                               dtype=torch.float32)))
 
             clean_spec = 10 * torch.log10(
                 torch.maximum(torch.square(torch.abs(clean_co[sample])),
-                              (10 ** (-15)) * torch.ones_like(combined_stfts,
+                              (10 ** (-15)) * torch.ones_like(clean_co[sample],
                                                               dtype=torch.float32)))
             pred_spec = 10 * torch.log10(
                 torch.maximum(torch.square(torch.abs(prediction[sample])),
-                              (10 ** (-15)) * torch.ones_like(combined_stfts,
+                              (10 ** (-15)) * torch.ones_like(prediction[sample],
                                                               dtype=torch.float32)))
 
-            writer.add_image("mix-"+ batch_idx + "-" + sample, mix_spec, self.current_epoch)
-            writer.add_image("clean-"+ batch_idx + "-" + sample, clean_spec, self.current_epoch)
-            writer.add_image("pred-"+ batch_idx + "-" + sample, pred_spec, self.current_epoch)
+            writer.add_image("mix-"+ str(batch_idx) + "-" + str(sample), mix_spec, self.current_epoch)
+            writer.add_image("clean-"+ str(batch_idx) + "-" + str(sample), clean_spec, self.current_epoch)
+            writer.add_image("pred-"+ str(batch_idx) + "-" + str(sample), pred_spec, self.current_epoch)
 
         writer.close()
 
