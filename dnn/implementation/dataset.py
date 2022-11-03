@@ -33,15 +33,13 @@ class CustomDataset(Dataset):
 
         self.data_clean = np.sort(np.array(glob.glob(self.data_dir+"/*clean.wav")))
         self.data_noise = np.sort(np.array(glob.glob(self.data_dir+"/*noise.wav")))
-        self.data_mixture = np.sort(np.array(glob.glob(self.data_dir+"/*mixture.wav")))
         self.sample_rate = 16000
-
     
-    
-        """Defines the length of one file
+        """Defines the number of files in the dataset
         """
     def __len__(self):
-        return self.data_clean.shape[0]
+        number_of_files = len(self.data_clean) + len(self.data_noise)
+        return number_of_files
 
         """Function to cut a soundfile into a variable number of seconds.
 
@@ -123,15 +121,13 @@ class CustomDataset(Dataset):
         #print(noise_split_concatenate.shape)
         #print(mixture_split_concatenate.shape)
 
-        
-
         return clean_split_concatenate, noise_split_concatenate, mixture_split_concatenate
 
-#Dataset = CustomDataset('Test')
+#Dataset = CustomDataset('Training')
 
 #Dataset.__getitem__(3)
 
-
+#Dataset.__len__()
 
 
 
