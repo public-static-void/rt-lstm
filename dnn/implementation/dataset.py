@@ -39,6 +39,7 @@ class CustomDataset(Dataset):
         """
     def __len__(self):
         number_of_files = len(self.data_clean) + len(self.data_noise)
+        print(number_of_files)
         return number_of_files
 
         """Function to cut a soundfile into a variable number of seconds.
