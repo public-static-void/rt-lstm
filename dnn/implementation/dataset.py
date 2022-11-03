@@ -74,7 +74,15 @@ class CustomDataset(Dataset):
 
         clean_read,fs = soundfile.read(self.data_clean[index])
         noise_read,fs = soundfile.read(self.data_noise[index])
-        mixture_read,fs = soundfile.read(self.data_mixture[index])
+        #mixture_read,fs = soundfile.read(self.data_mixture[index])
+
+        SNR = np.random.uniform(-10, 5)
+        power_clean = np.sum(np.square(clean_read))
+        power_noise = np.sum(np.square(noise_read))
+
+        factor_to_lower_noise = np.sqrt(power_clean / (10**((SNR/10))*power_noise))
+
+        mixture_read = clean_read + factor_to_lower_noise * noise_read
 
         start_sample = np.random.randint(0, mixture_read.shape[0]-samples_to_take)
 
@@ -85,6 +93,10 @@ class CustomDataset(Dataset):
         #print(clean_read.shape)
         #print(noise_read.shape)
         #print(mixture_read.shape)
+
+        #soundfile.write("./soundfiles/Hearing/clean.wav", clean_read, 16000)
+        #soundfile.write("./soundfiles/Hearing/noise.wav", noise_read, 16000)
+        #soundfile.write("./soundfiles/Hearing/mixture.wav", mixture_read, 16000)
 
         clean_stft = torch.stft(torch.from_numpy(clean_read), self.stft_length, self.stft_shift, window = window1, return_complex=True)
         noise_stft = torch.stft(torch.from_numpy(noise_read), self.stft_length, self.stft_shift, window = window1, return_complex=True)
@@ -101,15 +113,18 @@ class CustomDataset(Dataset):
         mixture_split_concatenate = torch.cat((torch.real(mixture_stft), torch.imag(mixture_stft)), dim=0)
 
 
-        #print(clean_split_concatenate.shape)
-        #print(noise_split_concatenate.shape)
-        #print(mixture_split_concatenate.shape)
+        #print(clean_split_concatenate.shape[0])
+        #print(noise_split_concatenate.shape[0])
+        #print(mixture_split_concatenate.shape[0])
+
+        
 
         return clean_split_concatenate, noise_split_concatenate, mixture_split_concatenate
 
 #Dataset = CustomDataset('Test')
 
 #Dataset.__getitem__(3)
+
 
 
 
