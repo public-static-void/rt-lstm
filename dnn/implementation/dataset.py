@@ -48,15 +48,15 @@ class CustomDataset(Dataset):
         Returns: NDArray[Float64]
 
         """
-    def __cut__(self, sound, sec:int):
-        samples_to_take = sec * self.sample_rate
+    def __cut__(self, sound, samples_to_take, start_sample:int):
+        
         if samples_to_take > sound.shape[0]:
             if sound.ndim > 1:
                 sound_cut = np.zeros((samples_to_take,3))
             else:
                 sound_cut = np.zeros(samples_to_take)
         else:
-            start_sample = np.random.randint(0, sound.shape[0]-samples_to_take)
+            
             sound_cut = sound[start_sample:start_sample+samples_to_take]
 
         return sound_cut
@@ -66,6 +66,9 @@ class CustomDataset(Dataset):
         Then the complex values of the clean, noisy and mixed signal are getting split into real and imaginary parts. This parts are getting concatinated.
         """
     def __getitem__(self, index):
+        cut_length = 3
+        samples_to_take = cut_length * self.sample_rate
+
         window1 = torch.from_numpy(np.sqrt(get_window('hann', self.stft_length, fftbins=True)))
 
 
@@ -73,9 +76,11 @@ class CustomDataset(Dataset):
         noise_read,fs = soundfile.read(self.data_noise[index])
         mixture_read,fs = soundfile.read(self.data_mixture[index])
 
-        clean_read = self.__cut__(clean_read, 3)
-        noise_read = self.__cut__(noise_read, 3)
-        mixture_read = self.__cut__(mixture_read, 3)
+        start_sample = np.random.randint(0, mixture_read.shape[0]-samples_to_take)
+
+        clean_read = self.__cut__(clean_read, samples_to_take, start_sample,)
+        noise_read = self.__cut__(noise_read, samples_to_take, start_sample)
+        mixture_read = self.__cut__(mixture_read, samples_to_take, start_sample)
 
         #print(clean_read.shape)
         #print(noise_read.shape)
