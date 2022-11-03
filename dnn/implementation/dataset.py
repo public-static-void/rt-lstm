@@ -23,16 +23,13 @@ class CustomDataset(Dataset):
         self.stft_length = stft_lenght
         self.stft_shift = stft_shift
 
-#'./soundfiles/Training'
-#etc.
-
         if self.type == 'Training':
-            self.data_dir = '/export/scratch/9hmoelle/generatedDatasets/Training'
+            self.data_dir = '../../generatedDatasets/Training'
         else:
             if self.type == 'Validation':
-                self.data_dir = '/export/scratch/9hmoelle/generatedDatasets/Training'
+                self.data_dir = '../../generatedDatasets/Validation'
             else:
-                self.data_dir = '/export/scratch/9hmoelle/generatedDatasets/Training'
+                self.data_dir = '../../generatedDatasets/Test'
 
         self.data_clean = np.sort(np.array(glob.glob(self.data_dir+"/*clean.wav")))
         self.data_noise = np.sort(np.array(glob.glob(self.data_dir+"/*noise.wav")))
@@ -97,9 +94,9 @@ class CustomDataset(Dataset):
         #print(noise_read.shape)
         #print(mixture_read.shape)
 
-        soundfile.write("./soundfiles/Hearing/clean.wav", clean_read, 16000)
-        soundfile.write("./soundfiles/Hearing/noise.wav", noise_read, 16000)
-        soundfile.write("./soundfiles/Hearing/mixture.wav", mixture_read, 16000)
+        #soundfile.write("./soundfiles/Hearing/clean.wav", clean_read, 16000)
+        #soundfile.write("./soundfiles/Hearing/noise.wav", noise_read, 16000)
+        #soundfile.write("./soundfiles/Hearing/mixture.wav", mixture_read, 16000)
 
         clean_stft = torch.stft(torch.from_numpy(clean_read.T), self.stft_length, self.stft_shift, window = window1, return_complex=True)
         noise_stft = torch.stft(torch.from_numpy(noise_read.T), self.stft_length, self.stft_shift, window = window1, return_complex=True)
@@ -116,17 +113,17 @@ class CustomDataset(Dataset):
         mixture_split_concatenate = torch.cat((torch.real(mixture_stft), torch.imag(mixture_stft)), dim=0)
 
 
-        print(clean_split_concatenate.shape)
-        print(noise_split_concatenate.shape)
-        print(mixture_split_concatenate.shape)
+        #print(clean_split_concatenate.shape)
+        #print(noise_split_concatenate.shape)
+        #print(mixture_split_concatenate.shape)
 
         
 
         return clean_split_concatenate, noise_split_concatenate, mixture_split_concatenate
 
-Dataset = CustomDataset('Test')
+#Dataset = CustomDataset('Test')
 
-Dataset.__getitem__(3)
+#Dataset.__getitem__(3)
 
 
 
