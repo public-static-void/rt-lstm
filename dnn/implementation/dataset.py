@@ -74,7 +74,7 @@ class CustomDataset(Dataset):
 
         clean_read,fs = soundfile.read(self.data_clean[index])
         noise_read,fs = soundfile.read(self.data_noise[index])
-        #mixture_read,fs = soundfile.read(self.data_mixture[index])
+
 
         SNR = np.random.uniform(-10, 5)
         power_clean = np.sum(np.square(clean_read))
@@ -98,8 +98,8 @@ class CustomDataset(Dataset):
         #soundfile.write("./soundfiles/Hearing/noise.wav", noise_read, 16000)
         #soundfile.write("./soundfiles/Hearing/mixture.wav", mixture_read, 16000)
 
-        clean_stft = torch.stft(torch.from_numpy(clean_read), self.stft_length, self.stft_shift, window = window1, return_complex=True)
-        noise_stft = torch.stft(torch.from_numpy(noise_read), self.stft_length, self.stft_shift, window = window1, return_complex=True)
+        clean_stft = torch.stft(torch.from_numpy(clean_read.T), self.stft_length, self.stft_shift, window = window1, return_complex=True)
+        noise_stft = torch.stft(torch.from_numpy(noise_read.T), self.stft_length, self.stft_shift, window = window1, return_complex=True)
         mixture_stft = torch.stft(torch.from_numpy(mixture_read.T), self.stft_length, self.stft_shift, window = window1, return_complex=True)
 
 
@@ -108,14 +108,14 @@ class CustomDataset(Dataset):
         #print(mixture_stft.shape)
 
 
-        clean_split_concatenate = torch.stack((torch.real(clean_stft), torch.imag(clean_stft)), dim=0)
-        noise_split_concatenate = torch.stack((torch.real(noise_stft), torch.imag(noise_stft)), dim=0)
+        clean_split_concatenate = torch.cat((torch.real(clean_stft), torch.imag(clean_stft)), dim=0)
+        noise_split_concatenate = torch.cat((torch.real(noise_stft), torch.imag(noise_stft)), dim=0)
         mixture_split_concatenate = torch.cat((torch.real(mixture_stft), torch.imag(mixture_stft)), dim=0)
 
 
-        #print(clean_split_concatenate.shape[0])
-        #print(noise_split_concatenate.shape[0])
-        #print(mixture_split_concatenate.shape[0])
+        #print(clean_split_concatenate.shape)
+        #print(noise_split_concatenate.shape)
+        #print(mixture_split_concatenate.shape)
 
         
 
