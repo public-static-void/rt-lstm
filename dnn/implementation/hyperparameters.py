@@ -23,7 +23,7 @@ hidden_size_1 = 256
 hidden_size_2 = 128
 output_size = 2  # 2 channels: 1 Re 1 Im ?.
 # TODO: how to ensure each part ends up where it belongs?
-batch_size = 5
+batch_size = 3
 K = 1  # decompression constant for mask decompression
 num_epochs = 100  # TODO: specify number of epochs.
 learning_rate = 0.00001
