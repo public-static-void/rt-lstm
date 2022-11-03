@@ -12,12 +12,15 @@ Topic         : Net module of the LSTM RNN Project
 
 import hyperparameters as hp
 import pytorch_lightning as pl
+import soundfile as sf
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import torchaudio
 import torchvision.transforms as transforms
 from torchmetrics import ScaleInvariantSignalDistortionRatio as SI_SDR
-
+import numpy as np
+from scipy.signal import get_window
 
 class LitNeuralNet(pl.LightningModule):
     def __init__(self, input_size, hidden_size_1, hidden_size_2, output_size):
@@ -103,6 +106,8 @@ class LitNeuralNet(pl.LightningModule):
         si_sdr_val = si_sdr(outputs, clean)
         self.log(f"val/si_sdr", si_sdr_val, on_step=False, on_epoch=True, logger=True)
 
+        # Add spectrograms and audios to tensorboard.
+
         return loss
 
     def predict_step(self, batch, batch_idx):
@@ -121,22 +126,53 @@ class LitNeuralNet(pl.LightningModule):
         mix_re = torch.chunk(mix, 2, 1)[0]
         mix_im = torch.chunk(mix, 2, 1)[1]
 
+        clean_re = torch.chunk(clean, 2, 1)[0]
+        clean_im = torch.chunk(clean, 2, 1)[1]
+
         mask_re = torch.chunk(decomp_mask, 2, 1)[0]
         mask_im = torch.chunk(decomp_mask, 2, 1)[1]
 
         mix_co = torch.complex(mix_re, mix_im)
+        clean_co = torch.complex(clean_re, clean_im)
         mask_co = torch.complex(mask_re, mask_im)
 
         prediction = mask_co * mix_co[0]
 
-        # generate spectrograms and sound files for mix, clean and prediction,
-        # and add them to tensorboard.
+        # generate sound files for mix, clean and prediction.
 
-        # wavs
+        # TODO: refactor
 
+        # istft
 
+        stft_length = 512
+        stft_shift = 256
+        window1 = torch.from_numpy(np.sqrt(get_window('hann', stft_length,
+                                                      fftbins=True))).to("cuda")
 
-        # spectrograms
+        # print(mix.shape)
+
+        for sample in range(0, mix.shape[0]):
+            mix_istft = torch.istft(mix_co[sample], stft_length, stft_shift, window = window1)
+            clean_istft = torch.istft(clean_co[sample], stft_length, stft_shift, window = window1)
+            pred_istft = torch.istft(prediction[sample], stft_length, stft_shift, window = window1)
+
+            # wavs
+
+            # print(type(mix_istft.cpu().numpy()[0][0]))
+
+            # sf.write("mix-" + str(batch_idx) + "-" + str(sample) + ".wav",
+            #          mix_istft.cpu().numpy(), 16000)
+            # sf.write("clean-" + str(batch_idx) + "-" + str(sample) + ".wav",
+            #          clean_istft.cpu().numpy(), 16000)
+            # sf.write("pred-" + str(batch_idx) + "-" + str(sample) + ".wav",
+            #          pred_istft.cpu().numpy(), 16000)
+
+            torchaudio.save("./out/mix-" + str(batch_idx) + "-" + str(sample) + ".wav",
+                     mix_istft.float().cpu(), 16000)
+            torchaudio.save("./out/clean-" + str(batch_idx) + "-" + str(sample) + ".wav",
+                     clean_istft.float().cpu(), 16000)
+            torchaudio.save("./out/pred-" + str(batch_idx) + "-" + str(sample) + ".wav",
+                     pred_istft.float().cpu(), 16000)
 
         return prediction
 
