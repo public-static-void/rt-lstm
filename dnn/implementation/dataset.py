@@ -24,12 +24,12 @@ class CustomDataset(Dataset):
         self.stft_shift = stft_shift
 
         if self.type == 'Training':
-            self.data_dir = '../../generatedDatasets/Training'
+            self.data_dir = '/informatik1/students/home/9hmoelle/generatedDatasets/Training'
         else:
             if self.type == 'Validation':
-                self.data_dir = '../../generatedDatasets/Validation'
+                self.data_dir = '/informatik1/students/home/9hmoelle/generatedDatasets/Validation'
             else:
-                self.data_dir = '../../generatedDatasets/Test'
+                self.data_dir = '/informatik1/students/home/9hmoelle/generatedDatasets/Test'
 
         self.data_clean = np.sort(np.array(glob.glob(self.data_dir+"/*clean.wav")))
         self.data_noise = np.sort(np.array(glob.glob(self.data_dir+"/*noise.wav")))
@@ -111,6 +111,12 @@ class CustomDataset(Dataset):
         clean_split_concatenate = torch.cat((torch.real(clean_stft), torch.imag(clean_stft)), dim=0)
         noise_split_concatenate = torch.cat((torch.real(noise_stft), torch.imag(noise_stft)), dim=0)
         mixture_split_concatenate = torch.cat((torch.real(mixture_stft), torch.imag(mixture_stft)), dim=0)
+
+        #print(clean_split_concatenate.shape)
+        #print(noise_split_concatenate.shape)
+
+        clean_split_concatenate = torch.chunk(clean_split_concatenate, 3, 0)[0]
+        noise_split_concatenate = torch.chunk(noise_split_concatenate, 3, 0)[0]
 
 
         #print(clean_split_concatenate.shape)
