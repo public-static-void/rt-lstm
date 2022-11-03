@@ -21,7 +21,6 @@ import torchvision.transforms as transforms
 from torchmetrics import ScaleInvariantSignalDistortionRatio as SI_SDR
 import numpy as np
 from scipy.signal import get_window
-from torch.utils.tensorboard import SummaryWriter
 
 stft_length = 512
 stft_shift = 256
@@ -134,7 +133,7 @@ class LitNeuralNet(pl.LightningModule):
 
         prediction = mask_co * mix_co[0]
 
-        writer = SummaryWriter()
+        writer = self.logger.experiment
 
         for sample in range(0, mix.shape[0]):
 
@@ -164,7 +163,7 @@ class LitNeuralNet(pl.LightningModule):
             writer.add_image("clean-"+ str(batch_idx) + "-" + str(sample), clean_spec, self.current_epoch)
             writer.add_image("pred-"+ str(batch_idx) + "-" + str(sample), pred_spec, self.current_epoch)
 
-        writer.close()
+        # writer.close()
 
         return loss
 
