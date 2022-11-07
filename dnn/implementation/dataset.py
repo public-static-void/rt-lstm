@@ -23,24 +23,26 @@ class CustomDataset(Dataset):
         self.stft_length = stft_lenght
         self.stft_shift = stft_shift
 
-        if self.type == 'Training':
-            self.data_dir = '/informatik1/students/home/9hmoelle/generatedDatasets/Training'
+        print(self.type)
+        if self.type == 'training':
+            self.data_dir = './soundfiles/generatedDatasets/Training'
         else:
-            if self.type == 'Validation':
-                self.data_dir = '/informatik1/students/home/9hmoelle/generatedDatasets/Validation'
+            if self.type == 'validation':
+                self.data_dir = './soundfiles/generatedDatasets/Validation'
             else:
-                self.data_dir = '/informatik1/students/home/9hmoelle/generatedDatasets/Test'
+                self.data_dir = './soundfiles/generatedDatasets/Test'
 
         self.data_clean = np.sort(np.array(glob.glob(self.data_dir+"/*clean.wav")))
         self.data_noise = np.sort(np.array(glob.glob(self.data_dir+"/*noise.wav")))
         self.sample_rate = 16000
-    
+
         """Defines the number of files in the dataset
         """
     def __len__(self):
-        number_of_files = len(self.data_clean) + len(self.data_noise)
-        print(number_of_files)
-        return number_of_files
+        # number_of_files = len(self.data_clean) + len(self.data_noise)
+        # print(number_of_files)
+        # return number_of_files
+        return len(self.data_clean)
 
         """Function to cut a soundfile into a variable number of seconds.
 
@@ -48,14 +50,14 @@ class CustomDataset(Dataset):
 
         """
     def __cut__(self, sound, samples_to_take, start_sample:int):
-        
+
         if samples_to_take > sound.shape[0]:
             if sound.ndim > 1:
                 sound_cut = np.zeros((samples_to_take,3))
             else:
                 sound_cut = np.zeros(samples_to_take)
         else:
-            
+
             sound_cut = sound[start_sample:start_sample+samples_to_take]
 
         return sound_cut
@@ -129,9 +131,3 @@ class CustomDataset(Dataset):
 #Dataset.__getitem__(3)
 
 #Dataset.__len__()
-
-
-
-
-
-
