@@ -27,6 +27,11 @@ stft_shift = 256
 window1 = torch.from_numpy(np.sqrt(get_window('hann', stft_length,
                                               fftbins=True))).to("cuda")
 
+def comp_mse(pred: torch.Tensor, clean: torch.Tensor, avg: int) -> float:
+    loss = torch.mean((torch.abs(pred - clean))**2)
+    return loss
+
+
 class LitNeuralNet(pl.LightningModule):
     def __init__(self, input_size, hidden_size_1, hidden_size_2, output_size):
         super(LitNeuralNet, self).__init__()
@@ -79,13 +84,20 @@ class LitNeuralNet(pl.LightningModule):
         noise = noise.float()
         mix = mix.float()
 
-        # input = input.reshape(-1, input_size)
-
         # Forward pass.
-        outputs = self(mix)
+        comp_mask = self(mix)
         # MSE loss function.
 
-        loss = F.mse_loss(outputs, clean)
+        decomp_mask = -torch.log((hp.K - comp_mask) / (hp.K + comp_mask))
+
+        mix_co = torch.complex(mix[:,0], mix[:,3])
+        clean_co = torch.complex(clean[:,0], clean[:,1])
+        mask_co = torch.complex(decomp_mask[:,0], decomp_mask[:,1])
+
+        prediction = mask_co * mix_co
+
+        # loss = F.mse_loss(prediction, clean_co)
+        loss = comp_mse(prediction, clean_co, clean_co.shape[1])
 
         tensorboard_logs = {f"train/loss": loss}
         self.log(f"train/loss", loss, on_step=False,
@@ -103,14 +115,24 @@ class LitNeuralNet(pl.LightningModule):
         mix = mix.float()
 
         # Forward pass.
-        outputs = self(mix)
+        comp_mask = self(mix)
         # MSE loss function.
-        # print(torch.chunk(clean, 3, 1)[0].shape)
 
-        loss = F.mse_loss(outputs, clean)
+        decomp_mask = -torch.log((hp.K - comp_mask) / (hp.K + comp_mask))
+
+        mix_co = torch.complex(mix[:,0], mix[:,3])
+        clean_co = torch.complex(clean[:,0], clean[:,1])
+        mask_co = torch.complex(decomp_mask[:,0], decomp_mask[:,1])
+
+        prediction = mask_co * mix_co
+
+        # loss = F.mse_loss(prediction, clean_co)
+        loss = comp_mse(prediction, clean_co, clean_co.shape[1])
         self.log(f"val/loss", loss, on_step=False, on_epoch=True, logger=True)
         si_sdr = SI_SDR().to("cuda")
-        si_sdr_val = si_sdr(outputs, clean)
+        clean_istft = torch.istft(clean_co, stft_length, stft_shift, window = window1)
+        pred_istft = torch.istft(prediction, stft_length, stft_shift, window = window1)
+        si_sdr_val = si_sdr(pred_istft, clean_istft)
         self.log(f"val/si_sdr", si_sdr_val, on_step=False, on_epoch=True, logger=True)
 
         # Add spectrograms and audios to tensorboard.
@@ -137,31 +159,31 @@ class LitNeuralNet(pl.LightningModule):
 
         for sample in range(0, mix.shape[0]):
 
-            mix_istft = torch.istft(mix_co[sample], stft_length, stft_shift, window = window1)
-            clean_istft = torch.istft(clean_co[sample], stft_length, stft_shift, window = window1)
-            pred_istft = torch.istft(prediction[sample], stft_length, stft_shift, window = window1)
+            if sample == 0:
 
-            writer.add_audio("mix-"+ str(batch_idx) + "-" + str(sample), mix_istft[0], self.current_epoch)
-            writer.add_audio("clean-"+ str(batch_idx) + "-" + str(sample), clean_istft[0], self.current_epoch)
-            writer.add_audio("pred-"+ str(batch_idx) + "-" + str(sample), pred_istft[0], self.current_epoch)
+                mix_istft = torch.istft(mix_co[sample], stft_length, stft_shift, window = window1)
+                clean_istft = torch.istft(clean_co[sample], stft_length, stft_shift, window = window1)
+                pred_istft = torch.istft(prediction[sample], stft_length, stft_shift, window = window1)
 
-            mix_spec = 10 * torch.log10(
-                torch.maximum(torch.square(torch.abs(mix_co[sample])),
-                              (10 ** (-15)) * torch.ones_like(mix_co[sample],
-                                                              dtype=torch.float32)))
+                writer.add_audio("mix-"+ str(batch_idx) + "-" + str(sample), mix_istft[0], self.current_epoch)
+                writer.add_audio("clean-"+ str(batch_idx) + "-" + str(sample), clean_istft[0], self.current_epoch)
 
-            clean_spec = 10 * torch.log10(
-                torch.maximum(torch.square(torch.abs(clean_co[sample])),
-                              (10 ** (-15)) * torch.ones_like(clean_co[sample],
-                                                              dtype=torch.float32)))
-            pred_spec = 10 * torch.log10(
-                torch.maximum(torch.square(torch.abs(prediction[sample])),
-                              (10 ** (-15)) * torch.ones_like(prediction[sample],
-                                                              dtype=torch.float32)))
+                mix_spec = 10 * torch.log10(
+                    torch.maximum(torch.square(torch.abs(mix_co[sample])),
+                                  (10 ** (-15)) * torch.ones_like(mix_co[sample],
+                                                                  dtype=torch.float32)))
+                clean_spec = 10 * torch.log10(
+                    torch.maximum(torch.square(torch.abs(clean_co[sample])),
+                                  (10 ** (-15)) * torch.ones_like(clean_co[sample],
+                                                                  dtype=torch.float32)))
+                pred_spec = 10 * torch.log10(
+                    torch.maximum(torch.square(torch.abs(prediction[sample])),
+                                  (10 ** (-15)) * torch.ones_like(prediction[sample],
+                                                                  dtype=torch.float32)))
 
-            writer.add_image("mix-"+ str(batch_idx) + "-" + str(sample), mix_spec, self.current_epoch)
-            writer.add_image("clean-"+ str(batch_idx) + "-" + str(sample), clean_spec, self.current_epoch)
-            writer.add_image("pred-"+ str(batch_idx) + "-" + str(sample), pred_spec, self.current_epoch)
+                writer.add_image("mix-"+ str(batch_idx) + "-" + str(sample), mix_spec, self.current_epoch)
+                writer.add_image("clean-"+ str(batch_idx) + "-" + str(sample), clean_spec, self.current_epoch)
+                writer.add_image("pred-"+ str(batch_idx) + "-" + str(sample), pred_spec, self.current_epoch)
 
         # writer.close()
 
@@ -175,34 +197,21 @@ class LitNeuralNet(pl.LightningModule):
         noise = noise.float()
         mix = mix.float()
 
-        comp_mask = self(mix)
-        decomp_mask = -torch.log((hp.K - comp_mask) / (hp.K + comp_mask))
-
         # merge real and imaginary parts of mix (and mask) before multiplication with mask.
 
-        mix_re = torch.chunk(mix, 2, 1)[0]
-        mix_im = torch.chunk(mix, 2, 1)[1]
+        # Forward pass.
+        comp_mask = self(mix)
+        # MSE loss function.
 
-        clean_re = torch.chunk(clean, 2, 1)[0]
-        clean_im = torch.chunk(clean, 2, 1)[1]
+        decomp_mask = -torch.log((hp.K - comp_mask) / (hp.K + comp_mask))
 
-        mask_re = torch.chunk(decomp_mask, 2, 1)[0]
-        mask_im = torch.chunk(decomp_mask, 2, 1)[1]
+        mix_co = torch.complex(mix[:,0], mix[:,3])
+        clean_co = torch.complex(clean[:,0], clean[:,1])
+        mask_co = torch.complex(decomp_mask[:,0], decomp_mask[:,1])
 
-        mix_co = torch.complex(mix_re, mix_im)
-        clean_co = torch.complex(clean_re, clean_im)
-        mask_co = torch.complex(mask_re, mask_im)
-
-        prediction = mask_co * mix_co[0]
+        prediction = mask_co * mix_co
 
         # generate sound files for mix, clean and prediction.
-
-        # TODO: refactor
-
-        # istft
-
-
-        # print(mix.shape)
 
         for sample in range(0, mix.shape[0]):
             mix_istft = torch.istft(mix_co[sample], stft_length, stft_shift, window = window1)
@@ -210,18 +219,6 @@ class LitNeuralNet(pl.LightningModule):
             pred_istft = torch.istft(prediction[sample], stft_length, stft_shift, window = window1)
 
             # wavs
-
-            # print(type(mix_istft.cpu().numpy()[0][0]))
-
-            # sf.write("mix-" + str(batch_idx) + "-" + str(sample) + ".wav",
-            #          mix_istft.cpu().numpy(), 16000)
-            # sf.write("clean-" + str(batch_idx) + "-" + str(sample) + ".wav",
-            #          clean_istft.cpu().numpy(), 16000)
-            # sf.write("pred-" + str(batch_idx) + "-" + str(sample) + ".wav",
-            #          pred_istft.cpu().numpy(), 16000)
-
-            # print(pred_istft)
-            print(mix_istft)
 
             torchaudio.save("./out/mix-" + str(batch_idx) + "-" + str(sample) + ".wav",
                      mix_istft.float().cpu(), 16000)

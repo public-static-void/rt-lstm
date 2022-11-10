@@ -42,7 +42,7 @@ DATA_DIR = "soundfiles/"
 tb_logger = pl_loggers.TensorBoardLogger(LOG_DIR, log_graph=False)
 
 # Callbacks/Checkpoints.
-early_stopping = EarlyStopping(monitor="val/loss", patience=10, mode="min")
+early_stopping = EarlyStopping(monitor="val/loss", patience=100, mode="min")
 checkpointing = ModelCheckpoint(
     dirpath=CHECKPOINT_DIR,
     filename="{epoch}-{step}",
