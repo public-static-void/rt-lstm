@@ -25,12 +25,14 @@ class CustomDataset(Dataset):
 
         print(self.type)
         if self.type == 'training':
-            self.data_dir = './soundfiles/generatedDatasets/Training'
+            self.data_dir = '/export/scratch/9hmoelle/generatedDatasets/Training'
+            
         else:
             if self.type == 'validation':
-                self.data_dir = './soundfiles/generatedDatasets/Validation'
+                self.data_dir = '/export/scratch/9hmoelle/generatedDatasets/Validation'
             else:
-                self.data_dir = './soundfiles/generatedDatasets/Test'
+                self.data_dir = '/export/scratch/9hmoelle/generatedDatasets/Test'
+                
 
         self.data_clean = np.sort(np.array(glob.glob(self.data_dir+"/*clean.wav")))
         self.data_noise = np.sort(np.array(glob.glob(self.data_dir+"/*noise.wav")))
@@ -42,7 +44,9 @@ class CustomDataset(Dataset):
         # number_of_files = len(self.data_clean) + len(self.data_noise)
         # print(number_of_files)
         # return number_of_files
+        #print(len(self.data_clean))
         return len(self.data_clean)
+        
 
         """Function to cut a soundfile into a variable number of seconds.
 
@@ -109,15 +113,12 @@ class CustomDataset(Dataset):
         #print(mixture_stft.shape)
 
 
-        clean_split_concatenate = torch.cat((torch.real(clean_stft), torch.imag(clean_stft)), dim=0)
-        noise_split_concatenate = torch.cat((torch.real(noise_stft), torch.imag(noise_stft)), dim=0)
+        clean_split_concatenate = torch.stack((torch.real(clean_stft[0]), torch.imag(clean_stft[0])), dim=0)
+        noise_split_concatenate = torch.stack((torch.real(noise_stft[0]), torch.imag(noise_stft[0])), dim=0)
         mixture_split_concatenate = torch.cat((torch.real(mixture_stft), torch.imag(mixture_stft)), dim=0)
 
         #print(clean_split_concatenate.shape)
         #print(noise_split_concatenate.shape)
-
-        clean_split_concatenate = torch.chunk(clean_split_concatenate, 3, 0)[0]
-        noise_split_concatenate = torch.chunk(noise_split_concatenate, 3, 0)[0]
 
 
         #print(clean_split_concatenate.shape)
@@ -126,8 +127,8 @@ class CustomDataset(Dataset):
 
         return clean_split_concatenate, noise_split_concatenate, mixture_split_concatenate
 
-#Dataset = CustomDataset('Training')
+#Dataset = CustomDataset('test')
 
 #Dataset.__getitem__(3)
 
-#Dataset.__len__()
+#print(Dataset.__len__())
