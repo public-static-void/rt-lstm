@@ -25,14 +25,14 @@ class CustomDataset(Dataset):
 
         print(self.type)
         if self.type == 'training':
-            self.data_dir = '/export/scratch/9hmoelle/generatedDatasets/Training'
-            
+            self.data_dir = './soundfiles/generatedDatasets/Training'
+
         else:
             if self.type == 'validation':
-                self.data_dir = '/export/scratch/9hmoelle/generatedDatasets/Validation'
+                self.data_dir = './soundfiles/generatedDatasets/Validation'
             else:
-                self.data_dir = '/export/scratch/9hmoelle/generatedDatasets/Test'
-                
+                self.data_dir = './soundfiles/generatedDatasets/Test'
+
 
         self.data_clean = np.sort(np.array(glob.glob(self.data_dir+"/*clean.wav")))
         self.data_noise = np.sort(np.array(glob.glob(self.data_dir+"/*noise.wav")))
@@ -46,7 +46,7 @@ class CustomDataset(Dataset):
         # return number_of_files
         #print(len(self.data_clean))
         return len(self.data_clean)
-        
+
 
         """Function to cut a soundfile into a variable number of seconds.
 

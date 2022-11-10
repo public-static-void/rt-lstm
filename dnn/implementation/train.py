@@ -28,6 +28,7 @@ def main():
         callbacks=[hp.early_stopping, hp.checkpointing],
         log_every_n_steps=1,
         logger=hp.tb_logger,
+        limit_train_batches = 0.1,
     )
     model = LitNeuralNet(
         hp.input_size, hp.hidden_size_1, hp.hidden_size_2, hp.output_size
@@ -38,6 +39,6 @@ def main():
         LitNeuralNet.train_dataloader(model),
         LitNeuralNet.val_dataloader(model),
     )
-    
+
 if __name__ == "__main__":
     main()

@@ -34,7 +34,8 @@ device = "gpu"
 # prediction loop using 1 batch(es).
 is_test_run = False
 
-LOG_DIR = "logs/"
+# LOG_DIR = "logs/"
+LOG_DIR = "/export/scratch/6titov/logs/"
 CHECKPOINT_DIR = "checkpoints/"
 DATA_DIR = "soundfiles/"
 

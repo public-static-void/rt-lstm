@@ -21,6 +21,7 @@ import torchvision.transforms as transforms
 from torchmetrics import ScaleInvariantSignalDistortionRatio as SI_SDR
 import numpy as np
 from scipy.signal import get_window
+from matplotlib import pyplot as plt
 
 stft_length = 512
 stft_shift = 256
@@ -137,36 +138,21 @@ class LitNeuralNet(pl.LightningModule):
 
         # Add spectrograms and audios to tensorboard.
 
-        comp_mask = self(mix)
-        decomp_mask = -torch.log((hp.K - comp_mask) / (hp.K + comp_mask))
-
-        mix_re = torch.chunk(mix, 2, 1)[0]
-        mix_im = torch.chunk(mix, 2, 1)[1]
-
-        clean_re = torch.chunk(clean, 2, 1)[0]
-        clean_im = torch.chunk(clean, 2, 1)[1]
-
-        mask_re = torch.chunk(decomp_mask, 2, 1)[0]
-        mask_im = torch.chunk(decomp_mask, 2, 1)[1]
-
-        mix_co = torch.complex(mix_re, mix_im)
-        clean_co = torch.complex(clean_re, clean_im)
-        mask_co = torch.complex(mask_re, mask_im)
-
-        prediction = mask_co * mix_co[0]
-
         writer = self.logger.experiment
 
         for sample in range(0, mix.shape[0]):
 
-            if sample == 0:
+            if sample == 0 and batch_idx == 0:
 
                 mix_istft = torch.istft(mix_co[sample], stft_length, stft_shift, window = window1)
                 clean_istft = torch.istft(clean_co[sample], stft_length, stft_shift, window = window1)
                 pred_istft = torch.istft(prediction[sample], stft_length, stft_shift, window = window1)
 
-                writer.add_audio("mix-"+ str(batch_idx) + "-" + str(sample), mix_istft[0], self.current_epoch)
-                writer.add_audio("clean-"+ str(batch_idx) + "-" + str(sample), clean_istft[0], self.current_epoch)
+                transform = torchaudio.transforms.Spectrogram(n_fft=512,
+                                                              win_length=256)
+                mix_spec = transform(mix_istft.to("cpu"))
+                clean_spec = transform(clean_istft.to("cpu"))
+                pred_spec = transform(pred_istft.to("cpu"))
 
                 mix_spec = 10 * torch.log10(
                     torch.maximum(torch.square(torch.abs(mix_co[sample])),
@@ -181,9 +167,44 @@ class LitNeuralNet(pl.LightningModule):
                                   (10 ** (-15)) * torch.ones_like(prediction[sample],
                                                                   dtype=torch.float32)))
 
-                writer.add_image("mix-"+ str(batch_idx) + "-" + str(sample), mix_spec, self.current_epoch)
-                writer.add_image("clean-"+ str(batch_idx) + "-" + str(sample), clean_spec, self.current_epoch)
-                writer.add_image("pred-"+ str(batch_idx) + "-" + str(sample), pred_spec, self.current_epoch)
+                # DEBUG
+                fig1 = plt.figure()
+                ax = fig1.add_subplot(111)
+                ax.imshow(mix_spec.to("cpu"))
+                plt.title("mix")
+                # plt.show()
+
+                fig2 = plt.figure()
+                ax = fig2.add_subplot(111)
+                ax.imshow(clean_spec.to("cpu"))
+                plt.title("clean")
+                # plt.show()
+
+                fig3 = plt.figure()
+                ax = fig3.add_subplot(111)
+                ax.imshow(pred_spec.to("cpu"))
+                plt.title("pred")
+                # plt.show()
+
+                writer.add_figure("clean-"+ str(batch_idx) + "-" + str(sample),
+                                 fig1, self.current_epoch)
+                writer.add_figure("pred-"+ str(batch_idx) + "-" + str(sample),
+                                 fig2, self.current_epoch)
+                writer.add_figure("mix-"+ str(batch_idx) + "-" + str(sample),
+                                 fig3, self.current_epoch)
+
+
+                writer.add_audio("mix-"+ str(batch_idx) + "-" + str(sample), mix_istft, self.current_epoch)
+                writer.add_audio("clean-"+ str(batch_idx) + "-" + str(sample), clean_istft, self.current_epoch)
+                writer.add_audio("pred-"+ str(batch_idx) + "-" + str(sample),
+                                 pred_istft, self.current_epoch)
+
+                # writer.add_image("clean-"+ str(batch_idx) + "-" + str(sample),
+                #                  clean_spec.unsqueeze(0), self.current_epoch)
+                # writer.add_image("pred-"+ str(batch_idx) + "-" + str(sample),
+                #                  pred_spec.unsqueeze(0), self.current_epoch)
+                # writer.add_image("mix-"+ str(batch_idx) + "-" + str(sample),
+                #                  mix_spec.unsqueeze(0), self.current_epoch)
 
         # writer.close()
 
