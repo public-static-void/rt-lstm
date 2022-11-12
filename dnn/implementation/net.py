@@ -23,23 +23,6 @@ from matplotlib import pyplot as plt
 from torchmetrics import ScaleInvariantSignalDistortionRatio as SI_SDR
 
 
-def comp_mse(pred: torch.Tensor, clean: torch.Tensor) -> float:
-    """Helper function.
-
-    Computes mean squared error (MSE) for complex valued tensors.
-
-    pred : torch.Tensor
-        Predicted signal tensor.
-    clean : torch.Tensor
-        Clean signal tensor.
-
-    Returns
-    -------
-    float
-        MSE.
-    """
-    loss = torch.mean((torch.abs(pred - clean)) ** 2)
-    return loss
 
 
 class LitNeuralNet(pl.LightningModule):
@@ -129,6 +112,24 @@ class LitNeuralNet(pl.LightningModule):
         # Output = compessed mask.
         return x
 
+    def comp_mse(self, pred: torch.Tensor, clean: torch.Tensor) -> float:
+        """Helper function.
+
+        Computes mean squared error (MSE) for complex valued tensors.
+
+        pred : torch.Tensor
+            Predicted signal tensor.
+        clean : torch.Tensor
+            Clean signal tensor.
+
+        Returns
+        -------
+        float
+            MSE.
+        """
+        loss = torch.mean((torch.abs(pred - clean)) ** 2)
+        return loss
+
     def configure_optimizers(self):
         """Helper function.
 
@@ -167,7 +168,7 @@ class LitNeuralNet(pl.LightningModule):
         prediction = mask_co * mix_co
 
         # Compute loss.
-        loss = comp_mse(prediction, clean_co, clean_co.shape[1])
+        loss = self.comp_mse(prediction, clean_co)
         return loss, clean_co, mix_co, prediction
 
     def training_step(self, batch: torch.Tensor, batch_idx: int) -> float:
@@ -184,7 +185,7 @@ class LitNeuralNet(pl.LightningModule):
             Training loss.
         """
         # Forward pass.
-        loss, _, _, _ = self.common_step(self, batch)
+        loss, _, _, _ = self.common_step(batch)
 
         # Logging.
         tensorboard_logs = {f"train/loss": loss}
@@ -207,7 +208,7 @@ class LitNeuralNet(pl.LightningModule):
             Training loss.
         """
         # Forward pass.
-        loss, clean_co, mix_co, prediction = self.common_step(self, batch)
+        loss, clean_co, mix_co, prediction = self.common_step(batch)
 
         # Logging.
         self.log(
@@ -219,10 +220,10 @@ class LitNeuralNet(pl.LightningModule):
         )
         si_sdr = SI_SDR().to("cuda")
         clean_istft = torch.istft(
-            clean_co, hp.stft_length, hp.stft_shift, hp.window
+            clean_co, hp.stft_length, hp.stft_shift, window=hp.window
         )
         pred_istft = torch.istft(
-            prediction, hp.stft_length, hp.stft_shift, hp.window
+            prediction, hp.stft_length, hp.stft_shift, window=hp.window
         )
         si_sdr_val = si_sdr(pred_istft, clean_istft)
         self.log(
@@ -242,13 +243,16 @@ class LitNeuralNet(pl.LightningModule):
         for sample in range(0, mix_co.shape[0]):
             if sample == 0 and batch_idx == 0:
                 mix_istft = torch.istft(
-                    mix_co[sample], hp.stft_length, hp.stft_shift, hp.window
+                    mix_co[sample], hp.stft_length, hp.stft_shift,
+                    window=hp.window
                 )
                 clean_istft = torch.istft(
-                    clean_co[sample], hp.stft_length, hp.stft_shift, hp.window
+                    clean_co[sample], hp.stft_length, hp.stft_shift,
+                    window=hp.window
                 )
                 pred_istft = torch.istft(
-                    prediction[sample], hp.stft_length, hp.stft_shift, hp.window
+                    prediction[sample], hp.stft_length, hp.stft_shift,
+                    window=hp.window
                 )
 
                 transform = torchaudio.transforms.Spectrogram(
@@ -359,7 +363,7 @@ class LitNeuralNet(pl.LightningModule):
         torch.Tensor
             Prediction.
         """
-        _, clean_co, mix_co, prediction = self.common_step(self, batch)
+        _, clean_co, mix_co, prediction = self.common_step(batch)
 
         # Generate sound files for mix, clean and prediction.
 
