@@ -358,16 +358,19 @@ class LitNeuralNet(pl.LightningModule):
 
         for sample in range(0, mix_co.shape[0]):
             mix_istft = torch.istft(
-                mix_co[sample], hp.stft_length, hp.stft_shift,
-                window=hp.window
+                mix_co[sample], hp.stft_length, hp.stft_shift, window=hp.window
             )
             clean_istft = torch.istft(
-                clean_co[sample], hp.stft_length, hp.stft_shift,
-                window=hp.window
+                clean_co[sample],
+                hp.stft_length,
+                hp.stft_shift,
+                window=hp.window,
             )
             pred_istft = torch.istft(
-                prediction[sample], hp.stft_length, hp.stft_shift,
-                window=hp.window
+                prediction[sample],
+                hp.stft_length,
+                hp.stft_shift,
+                window=hp.window,
             )
 
             sf.write(
