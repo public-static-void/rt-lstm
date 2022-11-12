@@ -11,18 +11,12 @@ Topic         : Net module of the LSTM RNN Project
 """
 
 import hyperparameters as hp
-import numpy as np
 import pytorch_lightning as pl
-import soundfile as sf
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 import torchaudio
-import torchvision.transforms as transforms
 from matplotlib import pyplot as plt
 from torchmetrics import ScaleInvariantSignalDistortionRatio as SI_SDR
-
-
 
 
 class LitNeuralNet(pl.LightningModule):
@@ -243,16 +237,22 @@ class LitNeuralNet(pl.LightningModule):
         for sample in range(0, mix_co.shape[0]):
             if sample == 0 and batch_idx == 0:
                 mix_istft = torch.istft(
-                    mix_co[sample], hp.stft_length, hp.stft_shift,
-                    window=hp.window
+                    mix_co[sample],
+                    hp.stft_length,
+                    hp.stft_shift,
+                    window=hp.window,
                 )
                 clean_istft = torch.istft(
-                    clean_co[sample], hp.stft_length, hp.stft_shift,
-                    window=hp.window
+                    clean_co[sample],
+                    hp.stft_length,
+                    hp.stft_shift,
+                    window=hp.window,
                 )
                 pred_istft = torch.istft(
-                    prediction[sample], hp.stft_length, hp.stft_shift,
-                    window=hp.window
+                    prediction[sample],
+                    hp.stft_length,
+                    hp.stft_shift,
+                    window=hp.window,
                 )
 
                 transform = torchaudio.transforms.Spectrogram(

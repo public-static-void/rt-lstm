@@ -10,15 +10,11 @@ Description   : Master's Project "Source Separation for Robot Control"
 Topic         : Hyperparameters module of the LSTM RNN Project
 """
 
-import pytorch_lightning as pl
+import numpy as np
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
-from dataset import CustomDataset
 from pytorch_lightning import loggers as pl_loggers
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from scipy.signal import get_window
-import numpy as np
 
 ###########################
 # General global settings #
