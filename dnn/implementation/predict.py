@@ -5,7 +5,7 @@
 Authors       : Vadim Titov
 Matr.-Nr.     : 6021356
 Created       : June 23th, 2022
-Last modified : October 20th, 2022
+Last modified : November 12th, 2022
 Description   : Master's Project "Source Separation for Robot Control"
 Topic         : Prediction module of the LSTM RNN Project
 """
@@ -16,31 +16,38 @@ from net import LitNeuralNet
 
 
 def main():
-    # load model
-    trained_model = LitNeuralNet.load_from_checkpoint(
-        # checkpoint_path=hp.CHECKPOINT_DIR + hp.CHECKPOINT_NAME
-        #checkpoint_path=hp.checkpointing.best_model_path
-        checkpoint_path="checkpoints/epoch=73-step=148000.ckpt"
-    )
+    """Main function.
 
-    # predict
+    Performs prediction functionality for a pretrained LSTM.
+    """
+    # Load pretrained net from checkpoint.
+    trained_model = LitNeuralNet.load_from_checkpoint(
+        # TODO: Automatically load best checkpoint? At the moment it's
+        # done manually by explicitly passing path and filename.
+        checkpoint_path=hp.CHECKPOINT_DIR
+        + hp.checkpoint_name
+    )
     trained_model.eval()
     trained_model.freeze()
 
+    # Initialize trainer.
     trainer = pl.Trainer(
         fast_dev_run=hp.is_test_run,
         accelerator=hp.device,
         devices=hp.num_devices,
         max_epochs=hp.num_epochs,
-        enable_checkpointing=True,
+        enable_checkpointing=hp.enable_checkpointing,
         callbacks=[hp.early_stopping, hp.checkpointing],
-        log_every_n_steps=1,
+        log_every_n_steps=hp.log_every_n_steps,
         logger=hp.tb_logger,
     )
 
-    #predictions = trainer.predict(trained_model, LitNeuralNet.test_dataloader, ckpt_path='best')
-    predictions = trainer.predict(trained_model, LitNeuralNet.test_dataloader(trained_model))
-
+    # Perform prediction.
+    predictions = trainer.predict(
+        trained_model, LitNeuralNet.test_dataloader(trained_model)
+    )
+    # TODO: Do something with the predicitions? At the moment, soundfiles
+    # are created for input and output.
 
 
 if __name__ == "__main__":
