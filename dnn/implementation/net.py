@@ -12,6 +12,7 @@ Topic         : Net module of the LSTM RNN Project
 
 import hyperparameters as hp
 import pytorch_lightning as pl
+import soundfile as sf
 import torch
 import torch.nn as nn
 import torchaudio
@@ -293,19 +294,16 @@ class LitNeuralNet(pl.LightningModule):
                 ax = fig_mix.add_subplot(111)
                 ax.imshow(mix_spec.to("cpu"))
                 plt.title("mix")
-                # plt.show()
 
                 fig_clean = plt.figure()
                 ax = fig_clean.add_subplot(111)
                 ax.imshow(clean_spec.to("cpu"))
                 plt.title("clean")
-                # plt.show()
 
                 fig_pred = plt.figure()
                 ax = fig_pred.add_subplot(111)
                 ax.imshow(pred_spec.to("cpu"))
                 plt.title("pred")
-                # plt.show()
 
                 writer.add_figure(
                     "clean-" + str(batch_idx) + "-" + str(sample),
@@ -339,15 +337,6 @@ class LitNeuralNet(pl.LightningModule):
                     self.current_epoch,
                 )
 
-                # writer.add_image("clean-"+ str(batch_idx) + "-" + str(sample),
-                #                  clean_spec.unsqueeze(0), self.current_epoch)
-                # writer.add_image("pred-"+ str(batch_idx) + "-" + str(sample),
-                #                  pred_spec.unsqueeze(0), self.current_epoch)
-                # writer.add_image("mix-"+ str(batch_idx) + "-" + str(sample),
-                #                  mix_spec.unsqueeze(0), self.current_epoch)
-
-        # writer.close()
-
         return loss
 
     def predict_step(self, batch: torch.Tensor, batch_idx: int) -> torch.Tensor:
@@ -369,42 +358,46 @@ class LitNeuralNet(pl.LightningModule):
 
         for sample in range(0, mix_co.shape[0]):
             mix_istft = torch.istft(
-                mix_co[sample], hp.stft_length, hp.stft_shift, hp.window
+                mix_co[sample], hp.stft_length, hp.stft_shift,
+                window=hp.window
             )
             clean_istft = torch.istft(
-                clean_co[sample], hp.stft_length, hp.stft_shift, hp.window
+                clean_co[sample], hp.stft_length, hp.stft_shift,
+                window=hp.window
             )
             pred_istft = torch.istft(
-                prediction[sample], hp.stft_length, hp.stft_shift, hp.window
+                prediction[sample], hp.stft_length, hp.stft_shift,
+                window=hp.window
             )
-            torchaudio.save(
+
+            sf.write(
                 hp.OUT_DIR
                 + "mix-"
                 + str(batch_idx)
                 + "-"
                 + str(sample)
                 + ".wav",
-                mix_istft.float().cpu(),
+                mix_istft.cpu(),
                 hp.fs,
             )
-            torchaudio.save(
+            sf.write(
                 hp.OUT_DIR
                 + "clean-"
                 + str(batch_idx)
                 + "-"
                 + str(sample)
                 + ".wav",
-                clean_istft.float().cpu(),
+                clean_istft.cpu(),
                 hp.fs,
             )
-            torchaudio.save(
+            sf.write(
                 hp.OUT_DIR
                 + "pred-"
                 + str(batch_idx)
                 + "-"
                 + str(sample)
                 + ".wav",
-                pred_istft.float().cpu(),
+                pred_istft.cpu(),
                 hp.fs,
             )
 

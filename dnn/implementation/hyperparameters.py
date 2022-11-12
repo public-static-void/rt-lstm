@@ -12,6 +12,7 @@ Topic         : Hyperparameters module of the LSTM RNN Project
 
 import numpy as np
 import torch
+from dataset import CustomDataset
 from pytorch_lightning import loggers as pl_loggers
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from scipy.signal import get_window
