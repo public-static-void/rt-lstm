@@ -184,8 +184,13 @@ class LitNeuralNet(pl.LightningModule):
 
         # Logging.
         tensorboard_logs = {f"train/loss": loss}
-        self.log(f"train/loss", loss, on_step=False,
-                 on_epoch=True, logger=True)
+        self.log(
+            f"train/loss",
+            loss,
+            on_step=hp.on_step,
+            on_epoch=hp.on_step,
+            logger=hp.logger,
+        )
 
         return loss
 
@@ -263,30 +268,41 @@ class LitNeuralNet(pl.LightningModule):
                 clean_spec = transform(clean_istft.to("cpu"))
                 pred_spec = transform(pred_istft.to("cpu"))
 
-                mix_spec = 10 * torch.log10(
-                    torch.maximum(
-                        torch.square(torch.abs(mix_co[sample])),
-                        (10 ** (-15))
-                        * torch.ones_like(mix_co[sample], dtype=torch.float32),
-                    )
+                # mix_spec = 10 * torch.log10(
+                #     torch.maximum(
+                #         torch.square(torch.abs(mix_co[sample])),
+                #         (10 ** (-15))
+                #         * torch.ones_like(mix_co[sample], dtype=torch.float32),
+                #     )
+                # )
+                # clean_spec = 10 * torch.log10(
+                #     torch.maximum(
+                #         torch.square(torch.abs(clean_co[sample])),
+                #         (10 ** (-15))
+                #         * torch.ones_like(
+                #             clean_co[sample], dtype=torch.float32
+                #         ),
+                #     )
+                # )
+                # pred_spec = 10 * torch.log10(
+                #     torch.maximum(
+                #         torch.square(torch.abs(prediction[sample])),
+                #         (10 ** (-15))
+                #         * torch.ones_like(
+                #             prediction[sample], dtype=torch.float32
+                #         ),
+                #     )
+                # )
+
+                # TODO: test
+                mix_spec = plt.specgram(
+                    mix_co[sample], NFFT=hp.stft_length, Fs=hp.fs
                 )
-                clean_spec = 10 * torch.log10(
-                    torch.maximum(
-                        torch.square(torch.abs(clean_co[sample])),
-                        (10 ** (-15))
-                        * torch.ones_like(
-                            clean_co[sample], dtype=torch.float32
-                        ),
-                    )
+                clean_spec = plt.specgram(
+                    clean_co[sample], NFFT=hp.stft_length, Fs=hp.fs
                 )
-                pred_spec = 10 * torch.log10(
-                    torch.maximum(
-                        torch.square(torch.abs(prediction[sample])),
-                        (10 ** (-15))
-                        * torch.ones_like(
-                            prediction[sample], dtype=torch.float32
-                        ),
-                    )
+                pred_spec = plt.specgram(
+                    prediction[sample], NFFT=hp.stft_length, Fs=hp.fs
                 )
 
                 # DEBUG
