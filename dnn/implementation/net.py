@@ -188,7 +188,7 @@ class LitNeuralNet(pl.LightningModule):
             f"train/loss",
             loss,
             on_step=hp.on_step,
-            on_epoch=hp.on_step,
+            on_epoch=hp.on_epoch,
             logger=hp.logger,
         )
 
@@ -310,23 +310,22 @@ class LitNeuralNet(pl.LightningModule):
                 ax.imshow(pred_spec.to("cpu"))
                 plt.title("pred")
 
-                # TODO: Test which approach (either add image itself or create
-                # figure with pyplot and add figure) works, if any at all.
-                writer.add_image(
-                    "img-clean-" + str(batch_idx) + "-" + str(sample),
-                    mix_spec,
-                    self.current_epoch,
-                )
-                writer.add_image(
-                    "img-pred-" + str(batch_idx) + "-" + str(sample),
-                    clean_spec,
-                    self.current_epoch,
-                )
-                writer.add_image(
-                    "img-mix-" + str(batch_idx) + "-" + str(sample),
-                    pred_spec,
-                    self.current_epoch,
-                )
+                # TODO: test.
+                # writer.add_image(
+                #     "img-clean-" + str(batch_idx) + "-" + str(sample),
+                #     mix_spec,
+                #     self.current_epoch,
+                # )
+                # writer.add_image(
+                #     "img-pred-" + str(batch_idx) + "-" + str(sample),
+                #     clean_spec,
+                #     self.current_epoch,
+                # )
+                # writer.add_image(
+                #     "img-mix-" + str(batch_idx) + "-" + str(sample),
+                #     pred_spec,
+                #     self.current_epoch,
+                # )
 
                 writer.add_figure(
                     "fig-clean-" + str(batch_idx) + "-" + str(sample),
