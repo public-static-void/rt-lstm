@@ -268,41 +268,30 @@ class LitNeuralNet(pl.LightningModule):
                 clean_spec = transform(clean_istft.to("cpu"))
                 pred_spec = transform(pred_istft.to("cpu"))
 
-                # mix_spec = 10 * torch.log10(
-                #     torch.maximum(
-                #         torch.square(torch.abs(mix_co[sample])),
-                #         (10 ** (-15))
-                #         * torch.ones_like(mix_co[sample], dtype=torch.float32),
-                #     )
-                # )
-                # clean_spec = 10 * torch.log10(
-                #     torch.maximum(
-                #         torch.square(torch.abs(clean_co[sample])),
-                #         (10 ** (-15))
-                #         * torch.ones_like(
-                #             clean_co[sample], dtype=torch.float32
-                #         ),
-                #     )
-                # )
-                # pred_spec = 10 * torch.log10(
-                #     torch.maximum(
-                #         torch.square(torch.abs(prediction[sample])),
-                #         (10 ** (-15))
-                #         * torch.ones_like(
-                #             prediction[sample], dtype=torch.float32
-                #         ),
-                #     )
-                # )
-
-                # TODO: test
-                mix_spec = plt.specgram(
-                    mix_co[sample], NFFT=hp.stft_length, Fs=hp.fs
+                mix_spec = 10 * torch.log10(
+                    torch.maximum(
+                        torch.square(torch.abs(mix_co[sample])),
+                        (10 ** (-15))
+                        * torch.ones_like(mix_co[sample], dtype=torch.float32),
+                    )
                 )
-                clean_spec = plt.specgram(
-                    clean_co[sample], NFFT=hp.stft_length, Fs=hp.fs
+                clean_spec = 10 * torch.log10(
+                    torch.maximum(
+                        torch.square(torch.abs(clean_co[sample])),
+                        (10 ** (-15))
+                        * torch.ones_like(
+                            clean_co[sample], dtype=torch.float32
+                        ),
+                    )
                 )
-                pred_spec = plt.specgram(
-                    prediction[sample], NFFT=hp.stft_length, Fs=hp.fs
+                pred_spec = 10 * torch.log10(
+                    torch.maximum(
+                        torch.square(torch.abs(prediction[sample])),
+                        (10 ** (-15))
+                        * torch.ones_like(
+                            prediction[sample], dtype=torch.float32
+                        ),
+                    )
                 )
 
                 # DEBUG
@@ -321,18 +310,36 @@ class LitNeuralNet(pl.LightningModule):
                 ax.imshow(pred_spec.to("cpu"))
                 plt.title("pred")
 
+                # TODO: Test which approach (either add image itself or create
+                # figure with pyplot and add figure) works, if any at all.
+                writer.add_image(
+                    "img-clean-" + str(batch_idx) + "-" + str(sample),
+                    mix_spec,
+                    self.current_epoch,
+                )
+                writer.add_image(
+                    "img-pred-" + str(batch_idx) + "-" + str(sample),
+                    clean_spec,
+                    self.current_epoch,
+                )
+                writer.add_image(
+                    "img-mix-" + str(batch_idx) + "-" + str(sample),
+                    pred_spec,
+                    self.current_epoch,
+                )
+
                 writer.add_figure(
-                    "clean-" + str(batch_idx) + "-" + str(sample),
+                    "fig-clean-" + str(batch_idx) + "-" + str(sample),
                     fig_mix,
                     self.current_epoch,
                 )
                 writer.add_figure(
-                    "pred-" + str(batch_idx) + "-" + str(sample),
+                    "fig-pred-" + str(batch_idx) + "-" + str(sample),
                     fig_clean,
                     self.current_epoch,
                 )
                 writer.add_figure(
-                    "mix-" + str(batch_idx) + "-" + str(sample),
+                    "fig-mix-" + str(batch_idx) + "-" + str(sample),
                     fig_pred,
                     self.current_epoch,
                 )

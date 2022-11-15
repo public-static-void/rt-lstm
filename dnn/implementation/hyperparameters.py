@@ -48,7 +48,7 @@ bidirectional = True
 batch_size = 3
 batch_first = True
 num_epochs = 100
-learning_rate = 0.00001
+learning_rate = 0.001
 K = 1  # Decompression constant for mask decompression.
 
 ###########
@@ -74,7 +74,7 @@ enable_checkpointing = True
 # Callbacks #
 #############
 
-early_stopping = EarlyStopping(monitor="val/loss", patience=100, mode="min")
+early_stopping = EarlyStopping(monitor="val/loss", patience=10, mode="min")
 
 checkpointing = ModelCheckpoint(
     dirpath=CHECKPOINT_DIR,
@@ -93,4 +93,5 @@ checkpointing = ModelCheckpoint(
 # prediction loop using 1 batch(es).
 is_test_run = False
 # Limit batches for debug training runs.
-limit_train_batches = 0.1
+# limit_train_batches = 0.1
+limit_train_batches = 1.0
