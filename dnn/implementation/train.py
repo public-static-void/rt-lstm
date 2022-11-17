@@ -11,6 +11,7 @@ Topic         : Training module of the LSTM RNN Project
 """
 
 import hyperparameters as hp
+from data import HDF5DataModule
 import pytorch_lightning as pl
 from net import LitNeuralNet
 
@@ -32,7 +33,7 @@ def main():
         log_every_n_steps=hp.log_every_n_steps,
         logger=hp.tb_logger,
         limit_train_batches=hp.limit_train_batches,
-        overfit_batches=0.01
+        # overfit_batches=0.01
     )
     # Initialize net.
     model = LitNeuralNet(
@@ -42,8 +43,21 @@ def main():
     # Train model.
     trainer.fit(
         model,
-        LitNeuralNet.train_dataloader(model),
-        LitNeuralNet.val_dataloader(model),
+        # LitNeuralNet.train_dataloader(model),
+        # LitNeuralNet.val_dataloader(model),
+        HDF5DataModule(
+            batch_size=hp.batch_size,
+            prep_files={'data':
+                        '/data/test/prep_mix_mix_ch3_sp5_dir0.hdf5',
+                        'meta': '/data/test/prep_mix_meta_mix_ch3_sp5_dir0.json'},
+            stft_length_samples=hp.stft_length,
+            stft_shift_samples=hp.stft_shift,
+            snr_range=None,
+            meta_frame_length=3*16000,
+            n_workers=hp.num_workers,
+            n_speakers=1,
+            fs=16000
+        )
     )
 
 

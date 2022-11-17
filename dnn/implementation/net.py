@@ -107,6 +107,10 @@ class LitNeuralNet(pl.LightningModule):
         # Output = compessed mask.
         return x
 
+    def si_sdr_loss(self, pred: torch.Tensor, clean: torch.Tensor) -> float:
+
+        return -sisdr
+
     def comp_mse(self, pred: torch.Tensor, clean: torch.Tensor) -> float:
         """Helper function.
 
@@ -149,7 +153,7 @@ class LitNeuralNet(pl.LightningModule):
             Loss, clean, mix, prediction.
         """
         # Unpack and cast input data for further processing.
-        clean, noise, mix = batch
+        clean, noise, mix, _ = batch
         clean = clean.float()
         noise = noise.float()
         mix = mix.float()
@@ -160,14 +164,20 @@ class LitNeuralNet(pl.LightningModule):
         mix_co = torch.complex(mix[:, 0], mix[:, 3])
         clean_co = torch.complex(clean[:, 0], clean[:, 1])
         mask_co = torch.complex(decomp_mask[:, 0], decomp_mask[:, 1])
-        # Apply mask to mixture (noisy) input signal.
-        # print(mask_co)
 
+        # Apply mask to mixture (noisy) input signal.
         prediction = mask_co * mix_co
-        print(mix_co - clean_co)
 
         # Compute loss.
         loss = self.comp_mse(prediction, clean_co)
+
+        # TODO: alternative loss function.
+        # clean_istft = torch.istft(
+        #     clean_co, hp.stft_length, hp.stft_shift, window=hp.window)
+        # pred_istft = torch.istft(
+        #     prediction, hp.stft_length, hp.stft_shift, window=hp.window)
+        # si_sdr = SI_SDR().to("cuda")
+        # loss = -si_sdr(pred_istft, clean_istft)
         return loss, clean_co, mix_co, prediction
 
     def training_step(self, batch: torch.Tensor, batch_idx: int) -> float:
@@ -365,7 +375,7 @@ class LitNeuralNet(pl.LightningModule):
 
         return loss
 
-    def predict_step(self, batch: torch.Tensor, batch_idx: int) -> torch.Tensor:
+    def predict_step(self, batch: torch.Tensor, batch_idx: int) -> tuple:
         """Implements the prediction step functionality.
 
         batch : torch.Tensor
@@ -375,8 +385,8 @@ class LitNeuralNet(pl.LightningModule):
 
         Returns
         -------
-        torch.Tensor
-            Prediction.
+        tuple
+            Prediction, clean, mix.
         """
         _, clean_co, mix_co, prediction = self.common_step(batch)
 
@@ -430,40 +440,76 @@ class LitNeuralNet(pl.LightningModule):
                 hp.fs,
             )
 
-        return prediction
+        return prediction, clean_co, mix_co
 
-    def train_dataloader(self):
-        """Initialize the data used in training."""
-        train_dataset = hp.CustomDataset(type="training")
+    # def train_dataloader(self):
+    #     """Initialize the data used in training."""
+    #     train_dataset = hp.CustomDataset(type="training")
 
-        train_loader = torch.utils.data.DataLoader(
-            dataset=train_dataset,
-            batch_size=hp.batch_size,
-            num_workers=hp.num_workers,
-            shuffle=True,
-        )
-        return train_loader
+    #     train_loader = torch.utils.data.DataLoader(
+    #         dataset=train_dataset,
+    #         batch_size=hp.batch_size,
+    #         num_workers=hp.num_workers,
+    #         shuffle=True,
+    #     )
+    #     return train_loader
 
-    def val_dataloader(self):
-        """Initialize the data used in validation."""
-        val_dataset = hp.CustomDataset(type="validation")
+    # def val_dataloader(self):
+    #     """Initialize the data used in validation."""
+    #     val_dataset = hp.CustomDataset(type="validation")
 
-        val_loader = torch.utils.data.DataLoader(
-            dataset=val_dataset,
-            batch_size=hp.batch_size,
-            num_workers=hp.num_workers,
-            shuffle=False,
-        )
-        return val_loader
+    #     val_loader = torch.utils.data.DataLoader(
+    #         dataset=val_dataset,
+    #         batch_size=hp.batch_size,
+    #         num_workers=hp.num_workers,
+    #         shuffle=False,
+    #     )
+    #     return val_loader
 
-    def test_dataloader(self):
-        """Initialize the data used in prediction."""
-        test_dataset = hp.CustomDataset(type="test")
+    # def test_dataloader(self):
+    #     """Initialize the data used in prediction."""
+    #     test_dataset = hp.CustomDataset(type="test")
 
-        test_loader = torch.utils.data.DataLoader(
-            dataset=test_dataset,
-            batch_size=hp.batch_size,
-            num_workers=hp.num_workers,
-            shuffle=False,
-        )
-        return test_loader
+    #     test_loader = torch.utils.data.DataLoader(
+    #         dataset=test_dataset,
+    #         batch_size=hp.batch_size,
+    #         num_workers=hp.num_workers,
+    #         shuffle=False,
+    #     )
+    #     return test_loader
+
+    # def train_dataloader(self):
+    #     """Initialize the data used in training."""
+    #     train_dataset = hp.CustomDataset(type="training")
+
+    #     train_loader = torch.utils.data.DataLoader(
+    #         dataset=train_dataset,
+    #         batch_size=hp.batch_size,
+    #         num_workers=hp.num_workers,
+    #         shuffle=True,
+    #     )
+    #     return train_loader
+
+    # def val_dataloader(self):
+    #     """Initialize the data used in validation."""
+    #     val_dataset = hp.CustomDataset(type="validation")
+
+    #     val_loader = torch.utils.data.DataLoader(
+    #         dataset=val_dataset,
+    #         batch_size=hp.batch_size,
+    #         num_workers=hp.num_workers,
+    #         shuffle=False,
+    #     )
+    #     return val_loader
+
+    # def test_dataloader(self):
+    #     """Initialize the data used in prediction."""
+    #     test_dataset = hp.CustomDataset(type="test")
+
+    #     test_loader = torch.utils.data.DataLoader(
+    #         dataset=test_dataset,
+    #         batch_size=hp.batch_size,
+    #         num_workers=hp.num_workers,
+    #         shuffle=False,
+    #     )
+    #     return test_loader

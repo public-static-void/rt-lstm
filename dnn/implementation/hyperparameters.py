@@ -23,7 +23,7 @@ from scipy.signal import get_window
 
 device = "gpu"
 num_devices = 1
-num_workers = 1
+num_workers = 8
 DATA_DIR = "soundfiles/"
 OUT_DIR = "out/"
 
@@ -48,7 +48,7 @@ bidirectional = True
 batch_size = 3
 batch_first = True
 num_epochs = 100
-learning_rate = 0.00003
+learning_rate = 0.001
 K = 1  # Decompression constant for mask decompression.
 
 ###########
