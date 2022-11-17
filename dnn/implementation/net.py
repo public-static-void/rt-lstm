@@ -131,6 +131,7 @@ class LitNeuralNet(pl.LightningModule):
         Configured the function used to update parameters.
         """
         # Adam optimizer.
+        # return torch.optim.RMSprop(self.parameters(), lr=hp.learning_rate)
         return torch.optim.Adam(self.parameters(), lr=hp.learning_rate)
 
     def common_step(self, batch: torch.Tensor) -> tuple:
@@ -160,7 +161,10 @@ class LitNeuralNet(pl.LightningModule):
         clean_co = torch.complex(clean[:, 0], clean[:, 1])
         mask_co = torch.complex(decomp_mask[:, 0], decomp_mask[:, 1])
         # Apply mask to mixture (noisy) input signal.
+        # print(mask_co)
+
         prediction = mask_co * mix_co
+        print(mix_co - clean_co)
 
         # Compute loss.
         loss = self.comp_mse(prediction, clean_co)
@@ -328,17 +332,17 @@ class LitNeuralNet(pl.LightningModule):
                 # )
 
                 writer.add_figure(
-                    "fig-clean-" + str(batch_idx) + "-" + str(sample),
+                    "fig-mix-" + str(batch_idx) + "-" + str(sample),
                     fig_mix,
                     self.current_epoch,
                 )
                 writer.add_figure(
-                    "fig-pred-" + str(batch_idx) + "-" + str(sample),
+                    "fig-clean-" + str(batch_idx) + "-" + str(sample),
                     fig_clean,
                     self.current_epoch,
                 )
                 writer.add_figure(
-                    "fig-mix-" + str(batch_idx) + "-" + str(sample),
+                    "fig-pred-" + str(batch_idx) + "-" + str(sample),
                     fig_pred,
                     self.current_epoch,
                 )

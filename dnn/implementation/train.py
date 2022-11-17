@@ -32,6 +32,7 @@ def main():
         log_every_n_steps=hp.log_every_n_steps,
         logger=hp.tb_logger,
         limit_train_batches=hp.limit_train_batches,
+        overfit_batches=0.01
     )
     # Initialize net.
     model = LitNeuralNet(

@@ -71,7 +71,7 @@ class CustomDataset(Dataset):
         Then the complex values of the clean, noisy and mixed signal are getting split into real and imaginary parts. This parts are getting concatinated.
         """
     def __getitem__(self, index):
-        
+
         #TODO: deacitvate when actually training
         reproducable = True
 
@@ -107,9 +107,9 @@ class CustomDataset(Dataset):
         #print(noise_read.shape)
         #print(mixture_read.shape)
 
-        soundfile.write("./soundfiles/Hearing/clean.wav", clean_read, 16000)
-        soundfile.write("./soundfiles/Hearing/noise.wav", noise_read, 16000)
-        soundfile.write("./soundfiles/Hearing/mixture.wav", mixture_read, 16000)
+        # soundfile.write("./soundfiles/Hearing/clean.wav", clean_read, 16000)
+        # soundfile.write("./soundfiles/Hearing/noise.wav", noise_read, 16000)
+        # soundfile.write("./soundfiles/Hearing/mixture.wav", mixture_read, 16000)
 
         clean_stft = torch.stft(torch.from_numpy(clean_read.T), self.stft_length, self.stft_shift, window = window1, return_complex=True)
         noise_stft = torch.stft(torch.from_numpy(noise_read.T), self.stft_length, self.stft_shift, window = window1, return_complex=True)
