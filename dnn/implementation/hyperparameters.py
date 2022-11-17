@@ -66,8 +66,8 @@ tb_logger = pl_loggers.TensorBoardLogger(LOG_DIR, log_graph=False)
 # Checkpointing #
 #################
 
-CHECKPOINT_DIR = "checkpoints/"
-checkpoint_name = "epoch=73-step=148000.ckpt"
+CHECKPOINT_DIR = "/informatik1/students/home/xmannwei/Beamformer/mp-2022/mp-2022/dnn/implementation/checkpoints/"
+checkpoint_name = "epoch=13-step=280.ckpt"
 enable_checkpointing = True
 
 #############
