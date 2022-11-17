@@ -25,13 +25,13 @@ class CustomDataset(Dataset):
 
         print(self.type)
         if self.type == 'training':
-            self.data_dir = './soundfiles/generatedDatasets/Training'
+            self.data_dir = '/export/scratch/9hmoelle/generatedDatasets/Training'
 
         else:
             if self.type == 'validation':
-                self.data_dir = './soundfiles/generatedDatasets/Validation'
+                self.data_dir = '/export/scratch/9hmoelle/generatedDatasets/Validation'
             else:
-                self.data_dir = './soundfiles/generatedDatasets/Test'
+                self.data_dir = '/export/scratch/9hmoelle/generatedDatasets/Test'
 
 
         self.data_clean = np.sort(np.array(glob.glob(self.data_dir+"/*clean.wav")))
@@ -71,6 +71,10 @@ class CustomDataset(Dataset):
         Then the complex values of the clean, noisy and mixed signal are getting split into real and imaginary parts. This parts are getting concatinated.
         """
     def __getitem__(self, index):
+        
+        #TODO: deacitvate when actually training
+        reproducable = True
+
         cut_length = 3
         samples_to_take = cut_length * self.sample_rate
 
@@ -80,6 +84,8 @@ class CustomDataset(Dataset):
         clean_read,fs = soundfile.read(self.data_clean[index])
         noise_read,fs = soundfile.read(self.data_noise[index])
 
+        if reproducable or self.type=='validation':
+            np.random.seed(index)
 
         SNR = np.random.uniform(-10, 5)
         power_clean = np.sum(np.square(clean_read))
@@ -88,6 +94,8 @@ class CustomDataset(Dataset):
         factor_to_lower_noise = np.sqrt(power_clean / (10**((SNR/10))*power_noise))
 
         mixture_read = clean_read + factor_to_lower_noise * noise_read
+
+
 
         start_sample = np.random.randint(0, mixture_read.shape[0]-samples_to_take)
 
@@ -99,9 +107,9 @@ class CustomDataset(Dataset):
         #print(noise_read.shape)
         #print(mixture_read.shape)
 
-        #soundfile.write("./soundfiles/Hearing/clean.wav", clean_read, 16000)
-        #soundfile.write("./soundfiles/Hearing/noise.wav", noise_read, 16000)
-        #soundfile.write("./soundfiles/Hearing/mixture.wav", mixture_read, 16000)
+        soundfile.write("./soundfiles/Hearing/clean.wav", clean_read, 16000)
+        soundfile.write("./soundfiles/Hearing/noise.wav", noise_read, 16000)
+        soundfile.write("./soundfiles/Hearing/mixture.wav", mixture_read, 16000)
 
         clean_stft = torch.stft(torch.from_numpy(clean_read.T), self.stft_length, self.stft_shift, window = window1, return_complex=True)
         noise_stft = torch.stft(torch.from_numpy(noise_read.T), self.stft_length, self.stft_shift, window = window1, return_complex=True)
@@ -127,8 +135,7 @@ class CustomDataset(Dataset):
 
         return clean_split_concatenate, noise_split_concatenate, mixture_split_concatenate
 
-#Dataset = CustomDataset('test')
+#Dataset = CustomDataset('validation')
 
-#Dataset.__getitem__(3)
+#Dataset.__getitem__(7)
 
-#print(Dataset.__len__())
