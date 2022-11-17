@@ -164,33 +164,20 @@ class LitNeuralNet(pl.LightningModule):
         mix_co = torch.complex(mix[:, 0], mix[:, 3])
         clean_co = torch.complex(clean[:, 0], clean[:, 1])
         mask_co = torch.complex(decomp_mask[:, 0], decomp_mask[:, 1])
+
         # Apply mask to mixture (noisy) input signal.
-        # print(mask_co)
-
         prediction = mask_co * mix_co
-        # print(mix_co - clean_co)
 
-        # fig, ax = plt.subplots(1,4)
-
-        # ax[0].pcolormesh(torch.log10(torch.abs(mix_co[0].cpu())))
-        # ax[0].set_title("mix")
-        # ax[1].pcolormesh(torch.log10(torch.abs(clean_co[0].cpu())))
-        # ax[1].set_title("clean")
-        # ax[2].pcolormesh(torch.log10(torch.abs(prediction[0].cpu().detach())))
-        # ax[2].set_title("prediction")
-        # ax[3].pcolormesh(torch.log10(torch.abs(mask_co[0].cpu().detach())))
-        # ax[3].set_title("mask")
-        # plt.show()
-        # print(prediction.shape)
         # Compute loss.
-        # loss = self.comp_mse(prediction, clean_co)
+        loss = self.comp_mse(prediction, clean_co)
 
-        clean_istft = torch.istft(
-            clean_co, hp.stft_length, hp.stft_shift, window=hp.window)
-        pred_istft = torch.istft(
-            prediction, hp.stft_length, hp.stft_shift, window=hp.window)
-        si_sdr = SI_SDR().to("cuda")
-        loss = -si_sdr(pred_istft, clean_istft)
+        # TODO: alternative loss function.
+        # clean_istft = torch.istft(
+        #     clean_co, hp.stft_length, hp.stft_shift, window=hp.window)
+        # pred_istft = torch.istft(
+        #     prediction, hp.stft_length, hp.stft_shift, window=hp.window)
+        # si_sdr = SI_SDR().to("cuda")
+        # loss = -si_sdr(pred_istft, clean_istft)
         return loss, clean_co, mix_co, prediction
 
     def training_step(self, batch: torch.Tensor, batch_idx: int) -> float:
