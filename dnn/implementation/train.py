@@ -5,14 +5,14 @@
 Authors       : Vadim Titov
 Matr.-Nr.     : 6021356
 Created       : June 23th, 2022
-Last modified : November 12th, 2022
+Last modified : November 17th, 2022
 Description   : Master's Project "Source Separation for Robot Control"
 Topic         : Training module of the LSTM RNN Project
 """
 
 import hyperparameters as hp
-from data import HDF5DataModule
 import pytorch_lightning as pl
+from data import HDF5DataModule
 from net import LitNeuralNet
 
 
@@ -43,21 +43,23 @@ def main():
     # Train model.
     trainer.fit(
         model,
+        # TODO: change dataloader once it works.
         # LitNeuralNet.train_dataloader(model),
         # LitNeuralNet.val_dataloader(model),
         HDF5DataModule(
             batch_size=hp.batch_size,
-            prep_files={'data':
-                        '/data/test/prep_mix_mix_ch3_sp5_dir0.hdf5',
-                        'meta': '/data/test/prep_mix_meta_mix_ch3_sp5_dir0.json'},
+            prep_files={
+                "data": "/data/test/prep_mix_mix_ch3_sp5_dir0.hdf5",
+                "meta": "/data/test/prep_mix_meta_mix_ch3_sp5_dir0.json",
+            },
             stft_length_samples=hp.stft_length,
             stft_shift_samples=hp.stft_shift,
             snr_range=None,
-            meta_frame_length=3*16000,
+            meta_frame_length=3 * 16000,
             n_workers=hp.num_workers,
             n_speakers=1,
-            fs=16000
-        )
+            fs=16000,
+        ),
     )
 
 

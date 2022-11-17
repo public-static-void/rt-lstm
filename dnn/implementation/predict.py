@@ -5,7 +5,7 @@
 Authors       : Vadim Titov
 Matr.-Nr.     : 6021356
 Created       : June 23th, 2022
-Last modified : November 12th, 2022
+Last modified : November 17th, 2022
 Description   : Master's Project "Source Separation for Robot Control"
 Topic         : Prediction module of the LSTM RNN Project
 """
@@ -46,7 +46,6 @@ def main():
     predictions = trainer.predict(
         trained_model, LitNeuralNet.test_dataloader(trained_model)
     )
-    
 
 
 if __name__ == "__main__":

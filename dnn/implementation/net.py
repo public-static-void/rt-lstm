@@ -5,7 +5,7 @@
 Authors       : Vadim Titov
 Matr.-Nr.     : 6021356
 Created       : June 23th, 2022
-Last modified : November 12th, 2022
+Last modified : November 17th, 2022
 Description   : Master's Project "Source Separation for Robot Control"
 Topic         : Net module of the LSTM RNN Project
 """
@@ -107,10 +107,6 @@ class LitNeuralNet(pl.LightningModule):
         # Output = compessed mask.
         return x
 
-    def si_sdr_loss(self, pred: torch.Tensor, clean: torch.Tensor) -> float:
-
-        return -sisdr
-
     def comp_mse(self, pred: torch.Tensor, clean: torch.Tensor) -> float:
         """Helper function.
 
@@ -178,6 +174,7 @@ class LitNeuralNet(pl.LightningModule):
         #     prediction, hp.stft_length, hp.stft_shift, window=hp.window)
         # si_sdr = SI_SDR().to("cuda")
         # loss = -si_sdr(pred_istft, clean_istft)
+
         return loss, clean_co, mix_co, prediction
 
     def training_step(self, batch: torch.Tensor, batch_idx: int) -> float:
@@ -249,8 +246,6 @@ class LitNeuralNet(pl.LightningModule):
         )
 
         # Add spectrograms and audios to tensorboard.
-        # TODO: this way of trying to add spectrograms and audios to
-        # tensorboard isn't working for some odd reason.
 
         writer = self.logger.experiment
 
@@ -308,7 +303,6 @@ class LitNeuralNet(pl.LightningModule):
                     )
                 )
 
-                # DEBUG
                 fig_mix = plt.figure()
                 ax = fig_mix.add_subplot(111)
                 ax.imshow(mix_spec.to("cpu"))
@@ -323,23 +317,6 @@ class LitNeuralNet(pl.LightningModule):
                 ax = fig_pred.add_subplot(111)
                 ax.imshow(pred_spec.to("cpu"))
                 plt.title("pred")
-
-                # TODO: test.
-                # writer.add_image(
-                #     "img-clean-" + str(batch_idx) + "-" + str(sample),
-                #     mix_spec,
-                #     self.current_epoch,
-                # )
-                # writer.add_image(
-                #     "img-pred-" + str(batch_idx) + "-" + str(sample),
-                #     clean_spec,
-                #     self.current_epoch,
-                # )
-                # writer.add_image(
-                #     "img-mix-" + str(batch_idx) + "-" + str(sample),
-                #     pred_spec,
-                #     self.current_epoch,
-                # )
 
                 writer.add_figure(
                     "fig-mix-" + str(batch_idx) + "-" + str(sample),
@@ -441,42 +418,6 @@ class LitNeuralNet(pl.LightningModule):
             )
 
         return prediction, clean_co, mix_co
-
-    # def train_dataloader(self):
-    #     """Initialize the data used in training."""
-    #     train_dataset = hp.CustomDataset(type="training")
-
-    #     train_loader = torch.utils.data.DataLoader(
-    #         dataset=train_dataset,
-    #         batch_size=hp.batch_size,
-    #         num_workers=hp.num_workers,
-    #         shuffle=True,
-    #     )
-    #     return train_loader
-
-    # def val_dataloader(self):
-    #     """Initialize the data used in validation."""
-    #     val_dataset = hp.CustomDataset(type="validation")
-
-    #     val_loader = torch.utils.data.DataLoader(
-    #         dataset=val_dataset,
-    #         batch_size=hp.batch_size,
-    #         num_workers=hp.num_workers,
-    #         shuffle=False,
-    #     )
-    #     return val_loader
-
-    # def test_dataloader(self):
-    #     """Initialize the data used in prediction."""
-    #     test_dataset = hp.CustomDataset(type="test")
-
-    #     test_loader = torch.utils.data.DataLoader(
-    #         dataset=test_dataset,
-    #         batch_size=hp.batch_size,
-    #         num_workers=hp.num_workers,
-    #         shuffle=False,
-    #     )
-    #     return test_loader
 
     # def train_dataloader(self):
     #     """Initialize the data used in training."""
