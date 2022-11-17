@@ -84,6 +84,7 @@ class CustomDataset(Dataset):
         clean_read,fs = soundfile.read(self.data_clean[index])
         noise_read,fs = soundfile.read(self.data_noise[index])
 
+        #To make comparing validation graphs possible (and for bug finding). If this if-clause is true, we always choose the same cut from each soundfile in each epoche.
         if reproducable or self.type=='validation':
             np.random.seed(index)
 
