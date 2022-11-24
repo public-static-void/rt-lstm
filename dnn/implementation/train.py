@@ -44,22 +44,22 @@ def main():
     trainer.fit(
         model,
         # TODO: change dataloader once it works.
-        # LitNeuralNet.train_dataloader(model),
-        # LitNeuralNet.val_dataloader(model),
-        HDF5DataModule(
-            batch_size=hp.batch_size,
-            prep_files={
-                "data": "/data/test/prep_mix_mix_ch3_sp5_dir0.hdf5",
-                "meta": "/data/test/prep_mix_meta_mix_ch3_sp5_dir0.json",
-            },
-            stft_length_samples=hp.stft_length,
-            stft_shift_samples=hp.stft_shift,
-            snr_range=None,
-            meta_frame_length=3 * 16000,
-            n_workers=hp.num_workers,
-            n_speakers=1,
-            fs=16000,
-        ),
+        LitNeuralNet.train_dataloader(model),
+        LitNeuralNet.val_dataloader(model),
+        # HDF5DataModule(
+        #     batch_size=hp.batch_size,
+        #     prep_files={
+        #         "data": "/data/test/prep_mix_mix_ch3_sp5_dir0.hdf5",
+        #         "meta": "/data/test/prep_mix_meta_mix_ch3_sp5_dir0.json",
+        #     },
+        #     stft_length_samples=hp.stft_length,
+        #     stft_shift_samples=hp.stft_shift,
+        #     snr_range=None,
+        #     meta_frame_length=3 * 16000,
+        #     n_workers=hp.num_workers,
+        #     n_speakers=1,
+        #     fs=16000,
+        # ),
     )
 
 

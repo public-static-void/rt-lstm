@@ -152,7 +152,7 @@ class LitNeuralNet(pl.LightningModule):
         torch.autograd.set_detect_anomaly(True, check_nan=True)
 
         # Unpack and cast input data for further processing.
-        clean, noise, mix, _ = batch
+        clean, noise, mix = batch
         clean = clean.float()
         noise = noise.float()
         mix = mix.float()
@@ -307,17 +307,29 @@ class LitNeuralNet(pl.LightningModule):
 
                 fig_mix = plt.figure()
                 ax = fig_mix.add_subplot(111)
-                ax.imshow(mix_spec.to("cpu"), origin = "lower")
+                im = ax.imshow(mix_spec.to("cpu"), origin = "lower",
+                               vmin=-80, vmax=20)
+                ax.set_xlabel("Frequency [bin]")
+                ax.set_ylabel("Time [bin]")
+                fig_mix.colorbar(im, orientation="vertical", pad=0.1)
                 plt.title("mix")
 
                 fig_clean = plt.figure()
                 ax = fig_clean.add_subplot(111)
-                ax.imshow(clean_spec.to("cpu"), origin = "lower")
+                im = ax.imshow(clean_spec.to("cpu"), origin = "lower",
+                               vmin=-80, vmax=20)
+                ax.set_xlabel("Frequency [bin]")
+                ax.set_ylabel("Time [bin]")
+                fig_clean.colorbar(im, orientation="vertical", pad=0.1)
                 plt.title("clean")
 
                 fig_pred = plt.figure()
                 ax = fig_pred.add_subplot(111)
-                ax.imshow(pred_spec.to("cpu"), origin ="lower")
+                im = ax.imshow(pred_spec.to("cpu"), origin ="lower",
+                               vmin=-80, vmax=20)
+                ax.set_xlabel("Frequency [bin]")
+                ax.set_ylabel("Time [bin]")
+                fig_pred.colorbar(im, orientation="vertical", pad=0.1)
                 plt.title("pred")
 
                 writer.add_figure(
@@ -424,29 +436,29 @@ class LitNeuralNet(pl.LightningModule):
 
         return prediction, clean_co, mix_co
 
-    # def train_dataloader(self):
-    #     """Initialize the data used in training."""
-    #     train_dataset = hp.CustomDataset(type="training")
+    def train_dataloader(self):
+        """Initialize the data used in training."""
+        train_dataset = hp.CustomDataset(type="training")
 
-    #     train_loader = torch.utils.data.DataLoader(
-    #         dataset=train_dataset,
-    #         batch_size=hp.batch_size,
-    #         num_workers=hp.num_workers,
-    #         shuffle=True,
-    #     )
-    #     return train_loader
+        train_loader = torch.utils.data.DataLoader(
+            dataset=train_dataset,
+            batch_size=hp.batch_size,
+            num_workers=hp.num_workers,
+            shuffle=True,
+        )
+        return train_loader
 
-    # def val_dataloader(self):
-    #     """Initialize the data used in validation."""
-    #     val_dataset = hp.CustomDataset(type="validation")
+    def val_dataloader(self):
+        """Initialize the data used in validation."""
+        val_dataset = hp.CustomDataset(type="validation")
 
-    #     val_loader = torch.utils.data.DataLoader(
-    #         dataset=val_dataset,
-    #         batch_size=hp.batch_size,
-    #         num_workers=hp.num_workers,
-    #         shuffle=False,
-    #     )
-    #     return val_loader
+        val_loader = torch.utils.data.DataLoader(
+            dataset=val_dataset,
+            batch_size=hp.batch_size,
+            num_workers=hp.num_workers,
+            shuffle=False,
+        )
+        return val_loader
 
     def test_dataloader(self):
         """Initialize the data used in prediction."""

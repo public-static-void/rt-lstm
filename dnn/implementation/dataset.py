@@ -71,7 +71,7 @@ class CustomDataset(Dataset):
         Then the complex values of the clean, noisy and mixed signal are getting split into real and imaginary parts. This parts are getting concatinated.
         """
     def __getitem__(self, index):
-        
+
         #TODO: deacitvate when actually training
         reproducable = True
 
