@@ -48,7 +48,7 @@ bidirectional = True
 batch_size = 3
 batch_first = True
 num_epochs = 100
-learning_rate = 0.0005
+learning_rate = 0.001
 K = 1  # Decompression constant for mask decompression.
 
 ###########
@@ -94,5 +94,5 @@ checkpointing = ModelCheckpoint(
 # prediction loop using 1 batch(es).
 is_test_run = False
 # Limit batches for debug training runs.
-# limit_train_batches = 0.1
 limit_train_batches = 1.0
+overfit_batches = 0.0

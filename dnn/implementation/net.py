@@ -131,8 +131,8 @@ class LitNeuralNet(pl.LightningModule):
         Configured the function used to update parameters.
         """
         # Adam optimizer.
-        # return torch.optim.RMSprop(self.parameters(), lr=hp.learning_rate)
-        return torch.optim.Adam(self.parameters(), lr=hp.learning_rate)
+        return torch.optim.RMSprop(self.parameters(), lr=hp.learning_rate)
+        # return torch.optim.Adam(self.parameters(), lr=hp.learning_rate)
 
     def common_step(self, batch: torch.Tensor) -> tuple:
         """Helper function.
@@ -305,17 +305,20 @@ class LitNeuralNet(pl.LightningModule):
 
                 fig_mix = plt.figure()
                 ax = fig_mix.add_subplot(111)
-                ax.imshow(mix_spec.to("cpu"))
+                ax.imshow(mix_spec.to("cpu"), origin = "lower")
+                # TODO: test if next line flips stft
                 plt.title("mix")
 
                 fig_clean = plt.figure()
                 ax = fig_clean.add_subplot(111)
-                ax.imshow(clean_spec.to("cpu"))
+                ax.imshow(clean_spec.to("cpu"), origin = "lower")
+                # TODO: test if next line flips stft
                 plt.title("clean")
 
                 fig_pred = plt.figure()
                 ax = fig_pred.add_subplot(111)
-                ax.imshow(pred_spec.to("cpu"))
+                ax.imshow(pred_spec.to("cpu"), origin ="lower")
+                # TODO: test if next line flips stft
                 plt.title("pred")
 
                 writer.add_figure(
@@ -338,16 +341,19 @@ class LitNeuralNet(pl.LightningModule):
                     "mix-" + str(batch_idx) + "-" + str(sample),
                     mix_istft,
                     self.current_epoch,
+                    16000
                 )
                 writer.add_audio(
                     "clean-" + str(batch_idx) + "-" + str(sample),
                     clean_istft,
                     self.current_epoch,
+                    16000
                 )
                 writer.add_audio(
                     "pred-" + str(batch_idx) + "-" + str(sample),
                     pred_istft,
                     self.current_epoch,
+                    16000
                 )
 
         return loss
