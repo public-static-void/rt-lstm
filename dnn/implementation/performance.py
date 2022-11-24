@@ -9,8 +9,8 @@ pesq = PerceptualEvaluationSpeechQuality(16000, 'wb')
 
 #TODO: 2 pesq's berechnen. 1.: clean und prediction 2.: noise und prediction. Dann ein Delta berechnen: 1.-2. Im Predict würde das dann aufgerufen werden.
 
-#data_clean = glob.glob(hyperparameters.OUT_DIR+"/clean*.wav")
-data_clean = glob.glob("out2/"+"/*clean.wav")
+data_clean = glob.glob(hyperparameters.OUT_DIR+"/clean*.wav")
+
 #print(data_clean)
 
 dictionary = {}
