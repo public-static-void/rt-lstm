@@ -96,13 +96,15 @@ class CustomDataset(Dataset):
 
         mixture_read = clean_read + factor_to_lower_noise * noise_read
 
-        #TODO: Kein cutten, wenn es Type Test ist.
+        #Disables cutting the soundfile into a 3sec clip, when the Dataset Type is 'test'.
 
-        start_sample = np.random.randint(0, mixture_read.shape[0]-samples_to_take)
+        if self.type=='validation' or self.type=='training':
 
-        clean_read = self.__cut__(clean_read, samples_to_take, start_sample,)
-        noise_read = self.__cut__(noise_read, samples_to_take, start_sample)
-        mixture_read = self.__cut__(mixture_read, samples_to_take, start_sample)
+            start_sample = np.random.randint(0, mixture_read.shape[0]-samples_to_take)
+
+            clean_read = self.__cut__(clean_read, samples_to_take, start_sample,)
+            noise_read = self.__cut__(noise_read, samples_to_take, start_sample)
+            mixture_read = self.__cut__(mixture_read, samples_to_take, start_sample)
 
         #print(clean_read.shape)
         #print(noise_read.shape)
