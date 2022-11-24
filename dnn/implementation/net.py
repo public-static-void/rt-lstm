@@ -99,7 +99,6 @@ class LitNeuralNet(pl.LightningModule):
         x = x.reshape(n_batch * n_f, n_t, 2 * self.hidden_size_1)
         x, _ = self.lstm2(x)
         x = x.reshape(n_batch, n_f, n_t, 2 * self.hidden_size_2)
-
         x = self.dense(x)
         x = x.permute(0, 3, 1, 2)
         x = self.tanh(x)
@@ -122,7 +121,7 @@ class LitNeuralNet(pl.LightningModule):
         float
             MSE.
         """
-        loss = torch.mean((torch.abs(pred - clean)) ** 2)
+        loss = torch.mean(torch.square(torch.abs(pred - clean)))
         return loss
 
     def configure_optimizers(self):
@@ -131,8 +130,9 @@ class LitNeuralNet(pl.LightningModule):
         Configured the function used to update parameters.
         """
         # Adam optimizer.
-        return torch.optim.RMSprop(self.parameters(), lr=hp.learning_rate)
+        # return torch.optim.RMSprop(self.parameters(), lr=hp.learning_rate)
         # return torch.optim.Adam(self.parameters(), lr=hp.learning_rate)
+        return torch.optim.AdamW(self.parameters(), lr=hp.learning_rate)
 
     def common_step(self, batch: torch.Tensor) -> tuple:
         """Helper function.
@@ -148,6 +148,9 @@ class LitNeuralNet(pl.LightningModule):
         tuple
             Loss, clean, mix, prediction.
         """
+        # TODO: DEBUG
+        torch.autograd.set_detect_anomaly(True, check_nan=True)
+
         # Unpack and cast input data for further processing.
         clean, noise, mix, _ = batch
         clean = clean.float()
@@ -194,9 +197,8 @@ class LitNeuralNet(pl.LightningModule):
         loss, _, _, _ = self.common_step(batch)
 
         # Logging.
-        tensorboard_logs = {f"train/loss": loss}
         self.log(
-            f"train/loss",
+            "train/loss",
             loss,
             on_step=hp.on_step,
             on_epoch=hp.on_epoch,
@@ -223,7 +225,7 @@ class LitNeuralNet(pl.LightningModule):
 
         # Logging.
         self.log(
-            f"val/loss",
+            "val/loss",
             loss,
             on_step=hp.on_step,
             on_epoch=hp.on_epoch,
@@ -238,7 +240,7 @@ class LitNeuralNet(pl.LightningModule):
         )
         si_sdr_val = si_sdr(pred_istft, clean_istft)
         self.log(
-            f"val/si_sdr",
+            "val/si_sdr",
             si_sdr_val,
             on_step=hp.on_step,
             on_epoch=hp.on_epoch,
@@ -306,19 +308,16 @@ class LitNeuralNet(pl.LightningModule):
                 fig_mix = plt.figure()
                 ax = fig_mix.add_subplot(111)
                 ax.imshow(mix_spec.to("cpu"), origin = "lower")
-                # TODO: test if next line flips stft
                 plt.title("mix")
 
                 fig_clean = plt.figure()
                 ax = fig_clean.add_subplot(111)
                 ax.imshow(clean_spec.to("cpu"), origin = "lower")
-                # TODO: test if next line flips stft
                 plt.title("clean")
 
                 fig_pred = plt.figure()
                 ax = fig_pred.add_subplot(111)
                 ax.imshow(pred_spec.to("cpu"), origin ="lower")
-                # TODO: test if next line flips stft
                 plt.title("pred")
 
                 writer.add_figure(
@@ -449,14 +448,14 @@ class LitNeuralNet(pl.LightningModule):
     #     )
     #     return val_loader
 
-    # def test_dataloader(self):
-    #     """Initialize the data used in prediction."""
-    #     test_dataset = hp.CustomDataset(type="test")
+    def test_dataloader(self):
+        """Initialize the data used in prediction."""
+        test_dataset = hp.CustomDataset(type="test")
 
-    #     test_loader = torch.utils.data.DataLoader(
-    #         dataset=test_dataset,
-    #         batch_size=hp.batch_size,
-    #         num_workers=hp.num_workers,
-    #         shuffle=False,
-    #     )
-    #     return test_loader
+        test_loader = torch.utils.data.DataLoader(
+            dataset=test_dataset,
+            batch_size=hp.batch_size,
+            num_workers=hp.num_workers,
+            shuffle=False,
+        )
+        return test_loader

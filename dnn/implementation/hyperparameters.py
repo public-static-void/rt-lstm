@@ -21,7 +21,7 @@ from scipy.signal import get_window
 # General global settings #
 ###########################
 
-device = "gpu"
+device = "cuda" if torch.cuda.is_available() else "cpu"
 num_devices = 1
 num_workers = 8
 DATA_DIR = "soundfiles/"
@@ -48,7 +48,7 @@ bidirectional = True
 batch_size = 3
 batch_first = True
 num_epochs = 100
-learning_rate = 0.001
+learning_rate = 0.01
 K = 1  # Decompression constant for mask decompression.
 
 ###########
@@ -68,7 +68,7 @@ tb_logger = pl_loggers.TensorBoardLogger(LOG_DIR, log_graph=False)
 
 # CHECKPOINT_DIR = "/informatik1/students/home/xmannwei/Beamformer/mp-2022/mp-2022/dnn/implementation/checkpoints/"
 CHECKPOINT_DIR = "checkpoints/"
-checkpoint_name = "epoch=13-step=280.ckpt"
+checkpoint_name = "epoch=81-step=164000.ckpt"
 enable_checkpointing = True
 
 #############
