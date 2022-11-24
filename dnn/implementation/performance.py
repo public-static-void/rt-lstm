@@ -26,7 +26,7 @@ for file_name in data_clean:
     pesq_pred_to_noise = pesq(pred_file[0], noise_file[0])
     pesq_delta = pesq_pred_to_clean - pesq_pred_to_noise
 
-    #TODO: Abspeichern z.b. als dictionary inkl. Dateinamen
+    #Abspeichern als dictionary inkl. Dateinamen
 
     dictionary[file_name] = pesq_delta.item()
 
