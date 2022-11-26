@@ -4,8 +4,8 @@
 """
 Authors       : Vadim Titov
 Matr.-Nr.     : 6021356
-Created       : June 23th, 2022
-Last modified : November 17th, 2022
+Created       : June 23rd, 2022
+Last modified : November 26th, 2022
 Description   : Master's Project "Source Separation for Robot Control"
 Topic         : Net module of the LSTM RNN Project
 """
@@ -129,10 +129,10 @@ class LitNeuralNet(pl.LightningModule):
 
         Configured the function used to update parameters.
         """
-        # Adam optimizer.
+        # RMSProp optimizer.
         # return torch.optim.RMSprop(self.parameters(), lr=hp.learning_rate)
+        # Adam optimizer.
         return torch.optim.Adam(self.parameters(), lr=hp.learning_rate)
-        # return torch.optim.AdamW(self.parameters(), lr=hp.learning_rate)
 
     def common_step(self, batch: torch.Tensor) -> tuple:
         """Helper function.
@@ -148,8 +148,7 @@ class LitNeuralNet(pl.LightningModule):
         tuple
             Loss, clean, mix, prediction.
         """
-        # TODO: DEBUG
-        torch.autograd.set_detect_anomaly(True, check_nan=True)
+        torch.autograd.set_detect_anomaly(mode=hp.mode, check_nan=hp.check_nan)
 
         # Unpack and cast input data for further processing.
         clean, noise, mix = batch
@@ -307,8 +306,9 @@ class LitNeuralNet(pl.LightningModule):
 
                 fig_mix = plt.figure()
                 ax = fig_mix.add_subplot(111)
-                im = ax.imshow(mix_spec.to("cpu"), origin = "lower",
-                               vmin=-80, vmax=20)
+                im = ax.imshow(
+                    mix_spec.to("cpu"), origin="lower", vmin=-80, vmax=20
+                )
                 ax.set_xlabel("Frequency [bin]")
                 ax.set_ylabel("Time [bin]")
                 fig_mix.colorbar(im, orientation="vertical", pad=0.1)
@@ -316,8 +316,9 @@ class LitNeuralNet(pl.LightningModule):
 
                 fig_clean = plt.figure()
                 ax = fig_clean.add_subplot(111)
-                im = ax.imshow(clean_spec.to("cpu"), origin = "lower",
-                               vmin=-80, vmax=20)
+                im = ax.imshow(
+                    clean_spec.to("cpu"), origin="lower", vmin=-80, vmax=20
+                )
                 ax.set_xlabel("Frequency [bin]")
                 ax.set_ylabel("Time [bin]")
                 fig_clean.colorbar(im, orientation="vertical", pad=0.1)
@@ -325,8 +326,9 @@ class LitNeuralNet(pl.LightningModule):
 
                 fig_pred = plt.figure()
                 ax = fig_pred.add_subplot(111)
-                im = ax.imshow(pred_spec.to("cpu"), origin ="lower",
-                               vmin=-80, vmax=20)
+                im = ax.imshow(
+                    pred_spec.to("cpu"), origin="lower", vmin=-80, vmax=20
+                )
                 ax.set_xlabel("Frequency [bin]")
                 ax.set_ylabel("Time [bin]")
                 fig_pred.colorbar(im, orientation="vertical", pad=0.1)
@@ -352,19 +354,19 @@ class LitNeuralNet(pl.LightningModule):
                     "mix-" + str(batch_idx) + "-" + str(sample),
                     mix_istft,
                     self.current_epoch,
-                    16000
+                    16000,
                 )
                 writer.add_audio(
                     "clean-" + str(batch_idx) + "-" + str(sample),
                     clean_istft,
                     self.current_epoch,
-                    16000
+                    16000,
                 )
                 writer.add_audio(
                     "pred-" + str(batch_idx) + "-" + str(sample),
                     pred_istft,
                     self.current_epoch,
-                    16000
+                    16000,
                 )
 
         return loss
@@ -435,39 +437,3 @@ class LitNeuralNet(pl.LightningModule):
             )
 
         return prediction, clean_co, mix_co
-
-    def train_dataloader(self):
-        """Initialize the data used in training."""
-        train_dataset = hp.CustomDataset(type="training")
-
-        train_loader = torch.utils.data.DataLoader(
-            dataset=train_dataset,
-            batch_size=hp.batch_size,
-            num_workers=hp.num_workers,
-            shuffle=True,
-        )
-        return train_loader
-
-    def val_dataloader(self):
-        """Initialize the data used in validation."""
-        val_dataset = hp.CustomDataset(type="validation")
-
-        val_loader = torch.utils.data.DataLoader(
-            dataset=val_dataset,
-            batch_size=hp.batch_size,
-            num_workers=hp.num_workers,
-            shuffle=False,
-        )
-        return val_loader
-
-    def test_dataloader(self):
-        """Initialize the data used in prediction."""
-        test_dataset = hp.CustomDataset(type="test")
-
-        test_loader = torch.utils.data.DataLoader(
-            dataset=test_dataset,
-            batch_size=hp.batch_size,
-            num_workers=hp.num_workers,
-            shuffle=False,
-        )
-        return test_loader

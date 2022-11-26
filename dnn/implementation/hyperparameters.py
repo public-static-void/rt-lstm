@@ -4,15 +4,14 @@
 """
 Authors       : Vadim Titov
 Matr.-Nr.     : 6021356
-Created       : June 23th, 2022
-Last modified : November 12th, 2022
+Created       : June 23rd, 2022
+Last modified : November 26th, 2022
 Description   : Master's Project "Source Separation for Robot Control"
 Topic         : Hyperparameters module of the LSTM RNN Project
 """
 
 import numpy as np
 import torch
-from dataset import CustomDataset
 from pytorch_lightning import loggers as pl_loggers
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from scipy.signal import get_window
@@ -95,4 +94,8 @@ checkpointing = ModelCheckpoint(
 is_test_run = False
 # Limit batches for debug training runs.
 limit_train_batches = 1.0
+#
 overfit_batches = 0.0
+# Anomaly detection
+mode = True
+check_nan = True
