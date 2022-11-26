@@ -131,8 +131,8 @@ class LitNeuralNet(pl.LightningModule):
         """
         # Adam optimizer.
         # return torch.optim.RMSprop(self.parameters(), lr=hp.learning_rate)
-        # return torch.optim.Adam(self.parameters(), lr=hp.learning_rate)
-        return torch.optim.AdamW(self.parameters(), lr=hp.learning_rate)
+        return torch.optim.Adam(self.parameters(), lr=hp.learning_rate)
+        # return torch.optim.AdamW(self.parameters(), lr=hp.learning_rate)
 
     def common_step(self, batch: torch.Tensor) -> tuple:
         """Helper function.
