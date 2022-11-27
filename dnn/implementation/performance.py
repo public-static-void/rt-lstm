@@ -5,7 +5,7 @@ import glob
 from torchmetrics.audio.pesq import PerceptualEvaluationSpeechQuality
 import hyperparameters
 
-def __calculate_pesq__(self):
+def __calculate_pesq__():
     pesq = PerceptualEvaluationSpeechQuality(16000, 'wb')
 
     #TODO: 2 pesq's berechnen. 1.: clean und prediction 2.: noise und prediction. Dann ein Delta berechnen: 1.-2. Im Predict würde das dann aufgerufen werden.
@@ -22,15 +22,15 @@ def __calculate_pesq__(self):
         pred_file, _ = torchaudio.load(file_name.replace('clean', 'pred'))
         #pred_file, _ = torchaudio.load(file_name.replace('clean', 'mixture'))
         noise_file = mix_file - clean_file
-
-        pesq_pred_to_clean = pesq(pred_file[0], clean_file[0])
-        pesq_pred_to_noise = pesq(pred_file[0], noise_file[0])
-        pesq_delta = pesq_pred_to_clean - pesq_pred_to_noise
+        if pred_file.sum().data[0] != 0:
+            pesq_pred_to_clean = pesq(pred_file[0], clean_file[0])
+            pesq_pred_to_noise = pesq(pred_file[0], noise_file[0])
+            pesq_delta = pesq_pred_to_clean - pesq_pred_to_noise
 
         #Abspeichern als dictionary inkl. Dateinamen
 
-        dictionary[file_name] = pesq_delta.item()
+            dictionary[file_name] = pesq_delta.item()
 
-    print(dictionary)
+            print(dictionary)
 
 
