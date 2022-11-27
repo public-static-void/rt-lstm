@@ -111,10 +111,10 @@ class CustomDataset(Dataset):
         else:
             if self.type=='test':
                 #TODO: Herausfinden, welche Test-Datei die kleinste ist und den Wert als samples_to_take setzen.
-                start_sample = 0
                 cut_length = 5
                 samples_to_take = cut_length * self.sample_rate
-                
+                start_sample = np.random.randint(0, mixture_read.shape[0]-samples_to_take)
+
                 clean_read = self.__cut__(clean_read, samples_to_take, start_sample,)
                 noise_read = self.__cut__(noise_read, samples_to_take, start_sample)
                 mixture_read = self.__cut__(mixture_read, samples_to_take, start_sample)
