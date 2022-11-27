@@ -16,10 +16,10 @@ data_clean = glob.glob(hyperparameters.OUT_DIR+"/clean*.wav")
 dictionary = {}
 for file_name in data_clean:
     clean_file, _ = torchaudio.load(file_name)
-    #mix_file, _ = torchaudio.load(file_name.replace('clean', 'mix'))
-    mix_file, _ = torchaudio.load(file_name.replace('clean', 'mixture'))
-    #pred_file, _ = torchaudio.load(file_name.replace('clean', 'pred'))
-    pred_file, _ = torchaudio.load(file_name.replace('clean', 'mixture'))
+    mix_file, _ = torchaudio.load(file_name.replace('clean', 'mix'))
+    #mix_file, _ = torchaudio.load(file_name.replace('clean', 'mixture'))
+    pred_file, _ = torchaudio.load(file_name.replace('clean', 'pred'))
+    #pred_file, _ = torchaudio.load(file_name.replace('clean', 'mixture'))
     noise_file = mix_file - clean_file
 
     pesq_pred_to_clean = pesq(pred_file[0], clean_file[0])
