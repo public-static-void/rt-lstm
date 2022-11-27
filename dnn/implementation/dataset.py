@@ -108,10 +108,16 @@ class CustomDataset(Dataset):
             clean_read = self.__cut__(clean_read, samples_to_take, start_sample,)
             noise_read = self.__cut__(noise_read, samples_to_take, start_sample)
             mixture_read = self.__cut__(mixture_read, samples_to_take, start_sample)
-        #else:
-           # if self.type=='test':
+        else:
+            if self.type=='test':
                 #TODO: Herausfinden, welche Test-Datei die kleinste ist und den Wert als samples_to_take setzen.
-                #start_sample = 0
+                start_sample = 0
+                cut_length = 5
+                samples_to_take = cut_length * self.sample_rate
+                
+                clean_read = self.__cut__(clean_read, samples_to_take, start_sample,)
+                noise_read = self.__cut__(noise_read, samples_to_take, start_sample)
+                mixture_read = self.__cut__(mixture_read, samples_to_take, start_sample)
 
         #print(clean_read.shape)
         #print(noise_read.shape)
