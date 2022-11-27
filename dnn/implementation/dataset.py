@@ -70,7 +70,7 @@ class CustomDataset(Dataset):
         return sound_cut
 
 
-        """This function reads in the soundfiles, uses __cut__ and transforms the signal into the frequency are via stft.
+        """This function reads in the soundfiles, uses __cut__ and transforms the signal into the frequency domain via stft.
         Then the complex values of the clean, noisy and mixed signal are getting split into real and imaginary parts. This parts are getting concatinated.
         """
     def __getitem__(self, index):
