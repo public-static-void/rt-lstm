@@ -4,12 +4,13 @@
 """
 Authors       : Vadim Titov
 Matr.-Nr.     : 6021356
-Created       : June 23th, 2022
-Last modified : November 17th, 2022
+Created       : June 23rd, 2022
+Last modified : November 26th, 2022
 Description   : Master's Project "Source Separation for Robot Control"
 Topic         : Prediction module of the LSTM RNN Project
 """
 
+import dataloaders
 import hyperparameters as hp
 import pytorch_lightning as pl
 from net import LitNeuralNet
@@ -43,9 +44,7 @@ def main():
     )
 
     # Perform prediction.
-    predictions = trainer.predict(
-        trained_model, LitNeuralNet.test_dataloader(trained_model)
-    )
+    predictions = trainer.predict(trained_model, dataloaders.test_dataloader())
 
 
 if __name__ == "__main__":

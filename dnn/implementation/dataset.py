@@ -26,12 +26,15 @@ class CustomDataset(Dataset):
         print(self.type)
         if self.type == 'training':
             self.data_dir = '/export/scratch/9hmoelle/generatedDatasets/Training'
+            # self.data_dir = 'soundfiles/generatedDatasets/Training'
 
         else:
             if self.type == 'validation':
                 self.data_dir = '/export/scratch/9hmoelle/generatedDatasets/Validation'
+                # self.data_dir = 'soundfiles/generatedDatasets/Validation'
             else:
                 self.data_dir = '/export/scratch/9hmoelle/generatedDatasets/Test'
+                # self.data_dir = 'soundfiles/generatedDatasets/Test'
 
 
         self.data_clean = np.sort(np.array(glob.glob(self.data_dir+"/*clean.wav")))
@@ -67,11 +70,11 @@ class CustomDataset(Dataset):
         return sound_cut
 
 
-        """This function reads in the soundfiles, uses __cut__ and transforms the signal into the frequency are via stft.
+        """This function reads in the soundfiles, uses __cut__ and transforms the signal into the frequency domain via stft.
         Then the complex values of the clean, noisy and mixed signal are getting split into real and imaginary parts. This parts are getting concatinated.
         """
     def __getitem__(self, index):
-        
+
         #TODO: deacitvate when actually training
         reproducable = True
 
