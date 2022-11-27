@@ -14,7 +14,7 @@ import dataloaders
 import hyperparameters as hp
 import pytorch_lightning as pl
 from net import LitNeuralNet
-
+import performance
 
 def main():
     """Main function.
@@ -45,6 +45,7 @@ def main():
 
     # Perform prediction.
     predictions = trainer.predict(trained_model, dataloaders.test_dataloader())
+    performance.__calculate_pesq__()
 
 
 if __name__ == "__main__":

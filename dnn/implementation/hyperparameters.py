@@ -47,7 +47,7 @@ bidirectional = True
 batch_size = 3
 batch_first = True
 num_epochs = 100
-learning_rate = 0.01
+learning_rate = 0.0005
 K = 1  # Decompression constant for mask decompression.
 
 ###########
@@ -67,7 +67,7 @@ tb_logger = pl_loggers.TensorBoardLogger(LOG_DIR, log_graph=False)
 
 # CHECKPOINT_DIR = "/informatik1/students/home/xmannwei/Beamformer/mp-2022/mp-2022/dnn/implementation/checkpoints/"
 CHECKPOINT_DIR = "checkpoints/"
-checkpoint_name = "epoch=81-step=164000.ckpt"
+checkpoint_name = "epoch=20-step=42000.ckpt"
 enable_checkpointing = True
 
 #############

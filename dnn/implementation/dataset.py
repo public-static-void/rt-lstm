@@ -25,16 +25,16 @@ class CustomDataset(Dataset):
 
         print(self.type)
         if self.type == 'training':
-            self.data_dir = '/export/scratch/9hmoelle/generatedDatasets/Training'
-            # self.data_dir = 'soundfiles/generatedDatasets/Training'
+            # self.data_dir = '/export/scratch/9hmoelle/generatedDatasets/Training'
+            self.data_dir = 'soundfiles/generatedDatasets/Training'
 
         else:
             if self.type == 'validation':
-                self.data_dir = '/export/scratch/9hmoelle/generatedDatasets/Validation'
-                # self.data_dir = 'soundfiles/generatedDatasets/Validation'
+                # self.data_dir = '/export/scratch/9hmoelle/generatedDatasets/Validation'
+                self.data_dir = 'soundfiles/generatedDatasets/Validation'
             else:
-                self.data_dir = '/export/scratch/9hmoelle/generatedDatasets/Test'
-                # self.data_dir = 'soundfiles/generatedDatasets/Test'
+                # self.data_dir = '/export/scratch/9hmoelle/generatedDatasets/Test'
+                self.data_dir = 'soundfiles/generatedDatasets/Test'
 
 
         self.data_clean = np.sort(np.array(glob.glob(self.data_dir+"/*clean.wav")))
@@ -76,7 +76,7 @@ class CustomDataset(Dataset):
     def __getitem__(self, index):
 
         #TODO: deacitvate when actually training
-        reproducable = True
+        reproducable = False
 
         cut_length = 3
         samples_to_take = cut_length * self.sample_rate
@@ -111,7 +111,7 @@ class CustomDataset(Dataset):
         else:
             if self.type=='test':
                 #TODO: Herausfinden, welche Test-Datei die kleinste ist und den Wert als samples_to_take setzen.
-                cut_length = 5
+                cut_length = 3
                 samples_to_take = cut_length * self.sample_rate
                 start_sample = np.random.randint(0, mixture_read.shape[0]-samples_to_take)
 

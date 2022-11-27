@@ -251,7 +251,7 @@ class LitNeuralNet(pl.LightningModule):
         writer = self.logger.experiment
 
         for sample in range(0, mix_co.shape[0]):
-            if sample == 0 and batch_idx == 0:
+            if sample == 1 and batch_idx == 0:
                 mix_istft = torch.istft(
                     mix_co[sample],
                     hp.stft_length,
