@@ -35,12 +35,21 @@ def main():
         logger=hp.tb_logger,
         limit_train_batches=hp.limit_train_batches,
         overfit_batches=hp.overfit_batches,
+        auto_lr_find=hp.auto_lr_find,
     )
     # Initialize net.
     model = LitNeuralNet(
         hp.input_size, hp.hidden_size_1, hp.hidden_size_2, hp.output_size
     )
     print(model)
+    if hp.auto_lr_find is True:
+        # Let lightning try to find ideal learning rate.
+        trainer.tune(
+            model,
+            dataloaders.train_dataloader(),
+            dataloaders.val_dataloader(),
+        )
+        model.learning_rate
     # Train model.
     trainer.fit(
         model,

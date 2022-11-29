@@ -59,6 +59,7 @@ class LitNeuralNet(pl.LightningModule):
         self.hidden_size_1 = hidden_size_1
         self.hidden_size_2 = hidden_size_2
         self.output_size = output_size
+        self.learning_rate = hp.learning_rate
         # LSTM Forward layer 1.
         self.lstm1 = nn.LSTM(
             input_size,
@@ -130,9 +131,9 @@ class LitNeuralNet(pl.LightningModule):
         Configured the function used to update parameters.
         """
         # RMSProp optimizer.
-        # return torch.optim.RMSprop(self.parameters(), lr=hp.learning_rate)
+        # return torch.optim.RMSprop(self.parameters(), lr=self.learning_rate)
         # Adam optimizer.
-        return torch.optim.Adam(self.parameters(), lr=hp.learning_rate)
+        return torch.optim.Adam(self.parameters(), lr=self.learning_rate)
 
     def common_step(self, batch: torch.Tensor) -> tuple:
         """Helper function.
