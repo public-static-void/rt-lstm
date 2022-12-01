@@ -41,11 +41,12 @@ def main():
         callbacks=[hp.early_stopping, hp.checkpointing],
         log_every_n_steps=hp.log_every_n_steps,
         logger=hp.tb_logger,
+        limit_predict_batches=hp.limit_predict_batches,
     )
 
     # Perform prediction.
     predictions = trainer.predict(trained_model, dataloaders.test_dataloader())
-    performance.__calculate_pesq__()
+    # performance.__calculate_pesq__()
 
 
 if __name__ == "__main__":

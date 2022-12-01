@@ -32,7 +32,7 @@ stft_length = 512
 stft_shift = 256
 fftbins = True
 window = torch.from_numpy(np.sqrt(get_window("hann", stft_length, fftbins))).to(
-    "cuda"
+    device
 )
 
 #########################
@@ -44,7 +44,7 @@ hidden_size_1 = 256
 hidden_size_2 = 128
 output_size = 2  # 1 channel * 2 (Re + Im).
 bidirectional = True
-batch_size = 3
+batch_size = 1
 batch_first = True
 num_epochs = 100
 learning_rate = 0.0005
@@ -94,10 +94,10 @@ checkpointing = ModelCheckpoint(
 is_test_run = False
 # Limit batches for debug training runs.
 limit_train_batches = 1.0
-#
+limit_predict_batches = 1.0
 overfit_batches = 0.0
 # Anomaly detection
 mode = True
 check_nan = True
 # Automatically find best learning rate.
-auto_lr_find = True
+auto_lr_find = False
