@@ -75,6 +75,9 @@ class CustomDataset(Dataset):
         """
     def __getitem__(self, index):
 
+        #TODO: Metadaten, die von Henning in einer Datei geliefert werden, zusammen mit der SNR, mit an Vadim übergeben. Inkl. Zuordnung zum Dateinamen.
+
+
         #TODO: deacitvate when actually training
         reproducable = False
 
@@ -108,16 +111,16 @@ class CustomDataset(Dataset):
             clean_read = self.__cut__(clean_read, samples_to_take, start_sample,)
             noise_read = self.__cut__(noise_read, samples_to_take, start_sample)
             mixture_read = self.__cut__(mixture_read, samples_to_take, start_sample)
-        else:
-            if self.type=='test':
-                #TODO: Herausfinden, welche Test-Datei die kleinste ist und den Wert als samples_to_take setzen.
-                cut_length = 3
-                samples_to_take = cut_length * self.sample_rate
-                start_sample = np.random.randint(0, mixture_read.shape[0]-samples_to_take)
+        #else:
+         #   if self.type=='test':
+          #      #TODO: Herausfinden, welche Test-Datei die kleinste ist und den Wert als samples_to_take setzen.
+           #     cut_length = 3
+            #    samples_to_take = cut_length * self.sample_rate
+             #   start_sample = np.random.randint(0, mixture_read.shape[0]-samples_to_take)
 
-                clean_read = self.__cut__(clean_read, samples_to_take, start_sample,)
-                noise_read = self.__cut__(noise_read, samples_to_take, start_sample)
-                mixture_read = self.__cut__(mixture_read, samples_to_take, start_sample)
+              #  clean_read = self.__cut__(clean_read, samples_to_take, start_sample,)
+               # noise_read = self.__cut__(noise_read, samples_to_take, start_sample)
+                #mixture_read = self.__cut__(mixture_read, samples_to_take, start_sample)
 
         #print(clean_read.shape)
         #print(noise_read.shape)

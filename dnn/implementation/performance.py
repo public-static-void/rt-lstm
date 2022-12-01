@@ -5,6 +5,8 @@ import glob
 from torchmetrics.audio.pesq import PerceptualEvaluationSpeechQuality
 import hyperparameters
 
+#TODO: SNR vs. PESQ, Entfernung der kürzesten Störquelle vs. PESQ, dafür Mittelwert vom PESQ mit Konfidenzintervall.
+
 def __calculate_pesq__():
     pesq = PerceptualEvaluationSpeechQuality(16000, 'wb')
 
@@ -12,7 +14,7 @@ def __calculate_pesq__():
 
     data_clean = glob.glob(hyperparameters.OUT_DIR+"/clean*.wav")
 
-    # print(data_clean)
+    #print(data_clean)
 
     dictionary = {}
     for file_name in data_clean:
