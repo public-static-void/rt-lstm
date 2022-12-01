@@ -22,15 +22,19 @@ def __calculate_pesq__():
         pred_file, _ = torchaudio.load(file_name.replace('clean', 'pred'))
         #pred_file, _ = torchaudio.load(file_name.replace('clean', 'mixture'))
         noise_file = mix_file - clean_file
-        if pred_file.sum().data[0] != 0 and clean_file.sum().data[0] != 0 and noise_file.sum().data[0] != 0:
-            pesq_pred_to_clean = pesq(pred_file[0], clean_file[0])
-            pesq_pred_to_noise = pesq(pred_file[0], noise_file[0])
-            pesq_delta = pesq_pred_to_clean - pesq_pred_to_noise
+        if pred_file.sum() != 0 and clean_file.sum() != 0 and noise_file.sum() != 0:
+            try:
+                pesq_pred_to_clean = pesq(pred_file[0], clean_file[0])
+                pesq_pred_to_noise = pesq(pred_file[0], noise_file[0])
+                pesq_delta = pesq_pred_to_clean - pesq_pred_to_noise
+            except:
+                print(213)
 
         #Abspeichern als dictionary inkl. Dateinamen
 
             dictionary[file_name] = pesq_delta.item()
 
-            print(dictionary)
+    print(dictionary)
 
-
+if __name__ == "__main__":
+    __calculate_pesq__()
