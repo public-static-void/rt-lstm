@@ -89,7 +89,7 @@ class CustomDataset(Dataset):
         #Test if Tensor is empty
         clean_read,fs = soundfile.read(self.data_clean[index])
         noise_read,fs = soundfile.read(self.data_noise[index])
-        i=0
+        i=1
         while clean_read.sum() == 0 or noise_read.sum() == 0:
             if index+i < len(self):
                 i+=1
