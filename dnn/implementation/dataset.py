@@ -118,7 +118,7 @@ class CustomDataset(Dataset):
         elif len(clean_read) < len(noise_read):
             clean_read = np.pad(clean_read, pad_width=(0, 0), mode='constant')
 
-        mixture_read = clean_read[:min_len] + factor_to_lower_noise * noise_read[:min_len]
+        mixture_read = clean_read + factor_to_lower_noise * noise_read
 
         #Disables cutting the soundfile into a 3sec clip, when the Dataset Type is 'test'.
 
