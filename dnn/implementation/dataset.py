@@ -91,7 +91,7 @@ class CustomDataset(Dataset):
         clean_read,fs = soundfile.read(self.data_clean[index])
         noise_read,fs = soundfile.read(self.data_noise[index])
         i=0
-        while clean_read.sum() != 0 or noise_read.sum() != 0:
+        while clean_read.sum() == 0 or noise_read.sum() == 0:
             clean_read,fs = soundfile.read(self.data_clean[index+i])
             noise_read,fs = soundfile.read(self.data_noise[index+i])
             if index+i < len(self):
