@@ -10,8 +10,6 @@ import hyperparameters
 def __calculate_pesq__():
     pesq = PerceptualEvaluationSpeechQuality(16000, 'wb')
 
-    #TODO: 2 pesq's berechnen. 1.: clean und prediction 2.: noise und prediction. Dann ein Delta berechnen: 1.-2. Im Predict würde das dann aufgerufen werden.
-
     data_clean = glob.glob(hyperparameters.OUT_DIR+"/clean*.wav")
 
     #print(data_clean)
@@ -32,7 +30,6 @@ def __calculate_pesq__():
             except:
                 print(213)
 
-        #Abspeichern als dictionary inkl. Dateinamen
 
             dictionary[file_name] = pesq_delta.item()
 
