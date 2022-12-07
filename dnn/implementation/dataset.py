@@ -5,7 +5,6 @@ from random import sample
 import numpy as np
 import soundfile
 import torch
-import tensorflow as tf
 from matplotlib.pyplot import axes
 from pandas import cut
 from scipy.signal import get_window, stft
@@ -92,13 +91,14 @@ class CustomDataset(Dataset):
         noise_read,fs = soundfile.read(self.data_noise[index])
         i=0
         while clean_read.sum() == 0 or noise_read.sum() == 0:
-            clean_read,fs = soundfile.read(self.data_clean[index+i])
-            noise_read,fs = soundfile.read(self.data_noise[index+i])
             if index+i < len(self):
                 i+=1
             else:
                 index=0
                 i=0
+            clean_read,fs = soundfile.read(self.data_clean[index+i])
+            noise_read,fs = soundfile.read(self.data_noise[index+i])
+
 
 
         #To make comparing validation graphs possible (and for bug finding). If this if-clause is true, we always choose the same cut from each soundfile in each epoche.
