@@ -114,9 +114,20 @@ class CustomDataset(Dataset):
         # In case the signals are of different length, pad the shorter one with
         # zeros to match length of the larger one.
         if len(clean_read) > len(noise_read):
-            noise_read = np.pad(noise_read, pad_width=(0, 0), mode='constant')
+            # Amount of zeros to pad.
+            n = len(clean_read) - len(noise_read)
+            # Make sure only to pad first axis.
+            npad = [(0, 0)] * noise_read.ndim
+            npad[0] = (0, n)
+            noise_read = np.pad(noise_read, pad_width=npad, mode='constant')
         elif len(clean_read) < len(noise_read):
-            clean_read = np.pad(clean_read, pad_width=(0, 0), mode='constant')
+            # Amount of zeros to pad.
+            n = len(noise_read) - len(clean_read)
+            # Make sure only to pad first axis.
+            npad = [(0, 0)] * clean_read.ndim
+            npad[0] = (0, n)
+            clean_read = np.pad(clean_read, pad_width=npad, mode='constant')
+
 
         mixture_read = clean_read + factor_to_lower_noise * noise_read
 
