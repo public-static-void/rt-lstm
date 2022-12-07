@@ -91,7 +91,7 @@ class CustomDataset(Dataset):
         clean_read,fs = soundfile.read(self.data_clean[index])
         noise_read,fs = soundfile.read(self.data_noise[index])
         i=0
-        while tf.math.count_nonzero(clean_read)==0 or tf.math.count_nonzero(noise_read)==0:
+        while clean_read.sum() != 0 or noise_read.sum() != 0:
             clean_read,fs = soundfile.read(self.data_clean[index+i])
             noise_read,fs = soundfile.read(self.data_noise[index+i])
             if index+i < len(self):
@@ -100,8 +100,6 @@ class CustomDataset(Dataset):
                 index=0
                 i=0
 
-       
-            
 
         #To make comparing validation graphs possible (and for bug finding). If this if-clause is true, we always choose the same cut from each soundfile in each epoche.
         if reproducable or self.type=='validation':
