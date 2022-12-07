@@ -111,7 +111,14 @@ class CustomDataset(Dataset):
 
         factor_to_lower_noise = np.sqrt(power_clean / (10**((SNR/10))*power_noise))
 
-        mixture_read = clean_read + factor_to_lower_noise * noise_read
+        # In case the signals are of different length, pad the shorter one with
+        # zeros to match length of the larger one.
+        if len(clean_read) > len(noise_read):
+            noise_read = np.pad(noise_read, pad_width=(0, 0), mode='constant')
+        elif len(clean_read) < len(noise_read):
+            clean_read = np.pad(clean_read, pad_width=(0, 0), mode='constant')
+
+        mixture_read = clean_read[:min_len] + factor_to_lower_noise * noise_read[:min_len]
 
         #Disables cutting the soundfile into a 3sec clip, when the Dataset Type is 'test'.
 
