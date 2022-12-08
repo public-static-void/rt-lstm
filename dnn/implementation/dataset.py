@@ -89,15 +89,15 @@ class CustomDataset(Dataset):
         #Test if Tensor is empty
         clean_read,fs = soundfile.read(self.data_clean[index])
         noise_read,fs = soundfile.read(self.data_noise[index])
-        i=1
-        while clean_read.sum() == 0 or noise_read.sum() == 0:
-            if index+i < len(self):
-                i+=1
-            else:
-                index=0
-                i=0
-            clean_read,fs = soundfile.read(self.data_clean[index+i])
-            noise_read,fs = soundfile.read(self.data_noise[index+i])
+        # i=1
+        # while clean_read.sum() == 0 or noise_read.sum() == 0:
+        #     if index+i < len(self):
+        #         i+=1
+        #     else:
+        #         index=0
+        #         i=0
+        #     clean_read,fs = soundfile.read(self.data_clean[index+i])
+        #     noise_read,fs = soundfile.read(self.data_noise[index+i])
 
 
 
@@ -142,8 +142,12 @@ class CustomDataset(Dataset):
             mixture_read = self.__cut__(mixture_read, samples_to_take, start_sample)
         #else:
         #    if self.type=='test':
+        #        print(len(clean_read))
+        #        print(len(noise_read))
+        #        print(len(mixture_read))
+
         #        #TODO: Herausfinden, welche Test-Datei die kleinste ist und den Wert als samples_to_take setzen.
-        #        cut_length = 3
+        #        cut_length = 4
         #        samples_to_take = cut_length * self.sample_rate
         #        start_sample = np.random.randint(0, mixture_read.shape[0]-samples_to_take)
 

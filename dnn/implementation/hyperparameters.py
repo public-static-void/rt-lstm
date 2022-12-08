@@ -21,6 +21,7 @@ from scipy.signal import get_window
 ###########################
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
+# device = "cpu"
 num_devices = 1
 num_workers = 8
 DATA_DIR = "soundfiles/"

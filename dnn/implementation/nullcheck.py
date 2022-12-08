@@ -15,9 +15,9 @@ import soundfile
 import glob
 
 
-type = 'training'
+# type = 'training'
 # type = 'validation'
-# type = 'test'
+type = 'test'
 
 def main():
 
