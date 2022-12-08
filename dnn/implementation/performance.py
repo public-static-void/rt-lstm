@@ -29,7 +29,7 @@ def __calculate_pesq__():
                 pesq_pred_to_noise = pesq(pred_file[0], noise_file[0])
                 pesq_delta = pesq_pred_to_clean - pesq_pred_to_noise
             except:
-                print(213)
+                print('Error: 213')
 
 
             dictionary[file_name] = pesq_delta.item()
