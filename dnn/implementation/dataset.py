@@ -81,7 +81,7 @@ class CustomDataset(Dataset):
         #TODO: deacitvate when actually training
         reproducable = False
 
-        cut_length = 3
+        cut_length = 4
         samples_to_take = cut_length * self.sample_rate
 
         window1 = torch.from_numpy(np.sqrt(get_window('hann', self.stft_length, fftbins=True)))
