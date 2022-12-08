@@ -5,7 +5,7 @@
 Authors       : Vadim Titov
 Matr.-Nr.     : 6021356
 Created       : June 23rd, 2022
-Last modified : November 26th, 2022
+Last modified : December 8th, 2022
 Description   : Master's Project "Source Separation for Robot Control"
 Topic         : Net module of the LSTM RNN Project
 """
@@ -64,14 +64,14 @@ class LitNeuralNet(pl.LightningModule):
         self.lstm1 = nn.LSTM(
             input_size,
             hidden_size_1,
-            bidirectional=hp.bidirectional,
+            bidirectional=hp.t_bidirectional,
             batch_first=hp.batch_first,
         )
         # LSTM Forward layer 2.
         self.lstm2 = nn.LSTM(
             2 * hidden_size_1,
             hidden_size_2,
-            bidirectional=hp.bidirectional,
+            bidirectional=hp.f_bidirectional,
             batch_first=hp.batch_first,
         )
         # Dense (= Fully connected) layer.

@@ -5,7 +5,7 @@
 Authors       : Vadim Titov
 Matr.-Nr.     : 6021356
 Created       : June 23rd, 2022
-Last modified : November 26th, 2022
+Last modified : December 8th, 2022
 Description   : Master's Project "Source Separation for Robot Control"
 Topic         : Hyperparameters module of the LSTM RNN Project
 """
@@ -44,7 +44,8 @@ input_size = 6  # 3 microphone channels * 2 (Re + Im).
 hidden_size_1 = 256
 hidden_size_2 = 128
 output_size = 2  # 1 channel * 2 (Re + Im).
-bidirectional = True
+t_bidirectional = False
+f_bidirectional = True
 batch_size = 3
 batch_first = True
 num_epochs = 100
