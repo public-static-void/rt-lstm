@@ -26,15 +26,15 @@ class CustomDataset(Dataset):
         print(self.type)
         if self.type == 'training':
             # self.data_dir = '/export/scratch/9hmoelle/generatedDatasets/Training'
-            self.data_dir = 'soundfiles/generatedDatasets/Training'
+            self.data_dir = 'soundfiles/Training'
 
         else:
             if self.type == 'validation':
                 # self.data_dir = '/export/scratch/9hmoelle/generatedDatasets/Validation'
-                self.data_dir = 'soundfiles/generatedDatasets/Validation'
+                self.data_dir = 'soundfiles/Validation'
             else:
                 # self.data_dir = '/export/scratch/9hmoelle/generatedDatasets/Test'
-                self.data_dir = 'soundfiles/generatedDatasets/Test'
+                self.data_dir = 'soundfiles/Test'
 
 
         self.data_clean = np.sort(np.array(glob.glob(self.data_dir+"/*clean.wav")))
@@ -89,16 +89,13 @@ class CustomDataset(Dataset):
         #Test if Tensor is empty
         clean_read,fs = soundfile.read(self.data_clean[index])
         noise_read,fs = soundfile.read(self.data_noise[index])
-        # i=1
-        # while clean_read.sum() == 0 or noise_read.sum() == 0:
-        #     if index+i < len(self):
-        #         i+=1
-        #     else:
-        #         index=0
-        #         i=0
-        #     clean_read,fs = soundfile.read(self.data_clean[index+i])
-        #     noise_read,fs = soundfile.read(self.data_noise[index+i])
-
+        while clean_read.sum() == 0 or noise_read.sum() == 0:
+            if index < len(self):
+                index+=1
+            else:
+                index=0
+            clean_read,fs = soundfile.read(self.data_clean[index])
+            noise_read,fs = soundfile.read(self.data_noise[index])
 
 
         #To make comparing validation graphs possible (and for bug finding). If this if-clause is true, we always choose the same cut from each soundfile in each epoche.
@@ -140,20 +137,6 @@ class CustomDataset(Dataset):
             clean_read = self.__cut__(clean_read, samples_to_take, start_sample,)
             noise_read = self.__cut__(noise_read, samples_to_take, start_sample)
             mixture_read = self.__cut__(mixture_read, samples_to_take, start_sample)
-        #else:
-        #    if self.type=='test':
-        #        print(len(clean_read))
-        #        print(len(noise_read))
-        #        print(len(mixture_read))
-
-        #        #TODO: Herausfinden, welche Test-Datei die kleinste ist und den Wert als samples_to_take setzen.
-        #        cut_length = 4
-        #        samples_to_take = cut_length * self.sample_rate
-        #        start_sample = np.random.randint(0, mixture_read.shape[0]-samples_to_take)
-
-        #        clean_read = self.__cut__(clean_read, samples_to_take, start_sample,)
-        #        noise_read = self.__cut__(noise_read, samples_to_take, start_sample)
-        #        mixture_read = self.__cut__(mixture_read, samples_to_take, start_sample)
 
         #print(clean_read.shape)
         #print(noise_read.shape)
@@ -177,6 +160,10 @@ class CustomDataset(Dataset):
         noise_split_concatenate = torch.stack((torch.real(noise_stft[0]), torch.imag(noise_stft[0])), dim=0)
         mixture_split_concatenate = torch.cat((torch.real(mixture_stft), torch.imag(mixture_stft)), dim=0)
 
+        clean_name = self.data_clean[index]
+        noise_name = self.data_noise[index]
+        mixture_name = clean_name.replace("clean", "mixture")
+
         #print(clean_split_concatenate.shape)
         #print(noise_split_concatenate.shape)
 
@@ -185,7 +172,7 @@ class CustomDataset(Dataset):
         #print(noise_split_concatenate.shape)
         #print(mixture_split_concatenate.shape)
 
-        return clean_split_concatenate, noise_split_concatenate, mixture_split_concatenate
+        return clean_split_concatenate, noise_split_concatenate, mixture_split_concatenate#, clean_name, noise_name, mixture_name, SNR
 
 #Dataset = CustomDataset('validation')
 
