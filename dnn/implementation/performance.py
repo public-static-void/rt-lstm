@@ -4,6 +4,8 @@ import torchaudio
 import glob
 from torchmetrics.audio.pesq import PerceptualEvaluationSpeechQuality
 import hyperparameters
+import pandas as pd
+
 
 #TODO: SNR vs. PESQ, Entfernung der kürzesten Störquelle vs. PESQ, dafür Mittelwert vom PESQ mit Konfidenzintervall.
 #TODO: SISDR, PESQ, Revibration Rate, Entfernung kürzeste Störquelle, SNR und natürlich File ID (nur clean? dann darauf achten, dass das auch konsistent bleibt) das alles mit pandas.dataFrame
@@ -33,8 +35,8 @@ def __calculate_pesq__():
 
 
             dictionary[file_name] = pesq_delta.item()
-
-    print(dictionary)
+            print(dictionary)
+    #Data_Matrix = pd.DataFrame(data=dictionary, columns=['SISDR', 'SNR', 'PESQ', 'Revibration', 'DisToNoise'], rows= file_name)
 
 if __name__ == "__main__":
     __calculate_pesq__()
