@@ -124,7 +124,7 @@ class LitNeuralNet(pl.LightningModule):
         x = self.tanh(x)
 
         # Output = compessed mask.
-        return x, (h_new, c_new)
+        return x, h_new, c_new
 
     def comp_mse(self, pred: torch.Tensor, clean: torch.Tensor) -> float:
         """Helper function.
@@ -154,7 +154,7 @@ class LitNeuralNet(pl.LightningModule):
         # Adam optimizer.
         return torch.optim.Adam(self.parameters(), lr=self.learning_rate)
 
-    def common_step(self, batch: torch.Tensor) -> tuple:
+    def common_step(self, batch: torch.Tensor, batch_idx: int) -> tuple:
         """Helper function.
 
         Implements functionality used in training, validation and prediction
@@ -162,6 +162,8 @@ class LitNeuralNet(pl.LightningModule):
 
         batch : torch.Tensor
             Input of the net.
+        batch_idx : int
+            Index of the current batch.
 
         Returns
         -------
@@ -178,21 +180,32 @@ class LitNeuralNet(pl.LightningModule):
 
         # Init LSTM hidden state and cell state.
         # TODO: only works for batch_size of 1.
-        input_size = hp.batch_size * mix.shape[3]
+        hidden_state_size = hp.batch_size * mix.shape[3]
 
         if self.t_bidirectional is True:
-            h0 = torch.randn(2, input_size, self.hidden_size_1).to(hp.device)
-            c0 = torch.randn(2, input_size, self.hidden_size_1).to(hp.device)
+            h_0 = torch.randn(2, hidden_state_size,
+                             self.hidden_size_1).to(hp.device)
+            c_0 = torch.randn(2, hidden_state_size,
+                             self.hidden_size_1).to(hp.device)
         else:
-            h0 = torch.randn(1, input_size, self.hidden_size_1).to(hp.device)
-            c0 = torch.randn(1, input_size, self.hidden_size_1).to(hp.device)
+            h_0 = torch.randn(1, hidden_state_size,
+                             self.hidden_size_1).to(hp.device)
+            c_0 = torch.randn(1, hidden_state_size,
+                             self.hidden_size_1).to(hp.device)
 
+        # Init LSTM hidden state in first iteration.
+        if batch_idx == 0:
+            self.h_pre = h_0
+            self.c_pre = c_0
         # Compute mask.
-        comp_mask, (h_n, c_n) = self(mix, h0, c0)
+        comp_mask, h_new, c_new = self(mix, self.h_pre, self.c_pre)
         decomp_mask = -torch.log((hp.K - comp_mask) / (hp.K + comp_mask))
         mix_co = torch.complex(mix[:, 0], mix[:, 3])
         clean_co = torch.complex(clean[:, 0], clean[:, 1])
         mask_co = torch.complex(decomp_mask[:, 0], decomp_mask[:, 1])
+        # Carry LSTM hidden state over to next iteration.
+        self.h_pre = h_new.detach()
+        self.c_pre = c_new.detach()
 
         # Apply mask to mixture (noisy) input signal.
         prediction = mask_co * mix_co
@@ -224,7 +237,7 @@ class LitNeuralNet(pl.LightningModule):
             Training loss.
         """
         # Forward pass.
-        loss, _, _, _ = self.common_step(batch)
+        loss, _, _, _ = self.common_step(batch, batch_idx)
 
         # Logging.
         self.log(
@@ -251,7 +264,7 @@ class LitNeuralNet(pl.LightningModule):
             Training loss.
         """
         # Forward pass.
-        loss, clean_co, mix_co, prediction = self.common_step(batch)
+        loss, clean_co, mix_co, prediction = self.common_step(batch, batch_idx)
 
         # Logging.
         self.log(
@@ -415,7 +428,7 @@ class LitNeuralNet(pl.LightningModule):
         tuple
             Prediction, clean, mix.
         """
-        _, clean_co, mix_co, prediction = self.common_step(batch)
+        _, clean_co, mix_co, prediction = self.common_step(batch, batch_idx)
 
         # Generate sound files for mix, clean and prediction.
 
