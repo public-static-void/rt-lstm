@@ -177,9 +177,15 @@ class LitNeuralNet(pl.LightningModule):
         mix = mix.float()
 
         # Init LSTM hidden state and cell state.
-        # TODO: is this the corret way?
-        h0 = torch.randn(1, 753, 256).to(hp.device)
-        c0 = torch.randn(1, 753, 256).to(hp.device)
+        # TODO: only works for batch_size of 1.
+        input_size = hp.batch_size * mix.shape[3]
+
+        if self.t_bidirectional is True:
+            h0 = torch.randn(2, input_size, self.hidden_size_1).to(hp.device)
+            c0 = torch.randn(2, input_size, self.hidden_size_1).to(hp.device)
+        else:
+            h0 = torch.randn(1, input_size, self.hidden_size_1).to(hp.device)
+            c0 = torch.randn(1, input_size, self.hidden_size_1).to(hp.device)
 
         # Compute mask.
         comp_mask, (h_n, c_n) = self(mix, h0, c0)
