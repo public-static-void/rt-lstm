@@ -5,7 +5,7 @@
 Authors       : Vadim Titov
 Matr.-Nr.     : 6021356
 Created       : June 23rd, 2022
-Last modified : December 8th, 2022
+Last modified : December 12th, 2022
 Description   : Master's Project "Source Separation for Robot Control"
 Topic         : Net module of the LSTM RNN Project
 """
@@ -60,22 +60,36 @@ class LitNeuralNet(pl.LightningModule):
         self.hidden_size_2 = hidden_size_2
         self.output_size = output_size
         self.learning_rate = hp.learning_rate
+        self.t_bidirectional = hp.t_bidirectional
+        self.f_bidirectional = hp.f_bidirectional
+        self.lstm1_in = self.input_size
+        self.lstm1_out = self.hidden_size_1
+
+        if self.t_bidirectional is True:
+            self.lstm2_in = 2 * self.hidden_size_1
+            self.lstm2_out = self.hidden_size_2
+            self.dense_in = 2 * self.hidden_size_2
+        else:
+            self.lstm2_in = self.hidden_size_1
+            self.lstm2_out = int(self.hidden_size_2 / 2)
+            self.dense_in = self.hidden_size_2
+
         # LSTM Forward layer 1.
         self.lstm1 = nn.LSTM(
-            input_size,
-            hidden_size_1,
-            bidirectional=hp.t_bidirectional,
+            self.lstm1_in,
+            self.lstm1_out,
+            bidirectional=self.t_bidirectional,
             batch_first=hp.batch_first,
         )
         # LSTM Forward layer 2.
         self.lstm2 = nn.LSTM(
-            2 * hidden_size_1,
-            hidden_size_2,
-            bidirectional=hp.f_bidirectional,
+            self.lstm2_in,
+            self.lstm2_out,
+            bidirectional=self.f_bidirectional,
             batch_first=hp.batch_first,
         )
         # Dense (= Fully connected) layer.
-        self.dense = nn.Linear(2 * hidden_size_2, output_size)
+        self.dense = nn.Linear(self.dense_in, self.output_size)
         # Tanh layer.
         self.tanh = nn.Tanh()
         self.save_hyperparameters()
@@ -95,11 +109,11 @@ class LitNeuralNet(pl.LightningModule):
         x = x.permute(0, 3, 2, 1)
         x = x.reshape(n_batch * n_t, n_f, n_ch)
         x, _ = self.lstm1(x)
-        x = x.reshape(n_batch, n_t, n_f, 2 * self.hidden_size_1)
+        x = x.reshape(n_batch, n_t, n_f, self.lstm2_in)
         x = x.permute(0, 2, 1, 3)
-        x = x.reshape(n_batch * n_f, n_t, 2 * self.hidden_size_1)
+        x = x.reshape(n_batch * n_f, n_t, self.lstm2_in)
         x, _ = self.lstm2(x)
-        x = x.reshape(n_batch, n_f, n_t, 2 * self.hidden_size_2)
+        x = x.reshape(n_batch, n_f, n_t, self.dense_in)
         x = self.dense(x)
         x = x.permute(0, 3, 1, 2)
         x = self.tanh(x)
