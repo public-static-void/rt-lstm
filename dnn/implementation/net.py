@@ -94,21 +94,26 @@ class LitNeuralNet(pl.LightningModule):
         self.tanh = nn.Tanh()
         self.save_hyperparameters()
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, h_pre: torch.Tensor, c_pre:
+                torch.Tensor)-> tuple:
         """Implements the forward step functionality.
 
         x : torch.Tensor
             Input of the net.
+        h_pre : torch.Tensor
+            Hidden state of previous iteration.
+        c_pre : torch.Tensor
+            Cell state of previous iteration.
 
         Returns
         -------
-        torch.Tensor
-           Compressed mask.
+        tuple
+           Compressed mask, (current hidden state, current cell state).
         """
         n_batch, n_ch, n_f, n_t = x.shape
         x = x.permute(0, 3, 2, 1)
         x = x.reshape(n_batch * n_t, n_f, n_ch)
-        x, _ = self.lstm1(x)
+        x, (h_new, c_new) = self.lstm1(x, (h_pre, c_pre))
         x = x.reshape(n_batch, n_t, n_f, self.lstm2_in)
         x = x.permute(0, 2, 1, 3)
         x = x.reshape(n_batch * n_f, n_t, self.lstm2_in)
@@ -119,7 +124,7 @@ class LitNeuralNet(pl.LightningModule):
         x = self.tanh(x)
 
         # Output = compessed mask.
-        return x
+        return x, (h_new, c_new)
 
     def comp_mse(self, pred: torch.Tensor, clean: torch.Tensor) -> float:
         """Helper function.
@@ -171,8 +176,13 @@ class LitNeuralNet(pl.LightningModule):
         noise = noise.float()
         mix = mix.float()
 
+        # Init LSTM hidden state and cell state.
+        # TODO: is this the corret way?
+        h0 = torch.randn(1, 753, 256).to(hp.device)
+        c0 = torch.randn(1, 753, 256).to(hp.device)
+
         # Compute mask.
-        comp_mask = self(mix)
+        comp_mask, (h_n, c_n) = self(mix, h0, c0)
         decomp_mask = -torch.log((hp.K - comp_mask) / (hp.K + comp_mask))
         mix_co = torch.complex(mix[:, 0], mix[:, 3])
         clean_co = torch.complex(clean[:, 0], clean[:, 1])
