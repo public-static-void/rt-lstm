@@ -5,7 +5,7 @@
 Authors       : Vadim Titov
 Matr.-Nr.     : 6021356
 Created       : June 23rd, 2022
-Last modified : December 12th, 2022
+Last modified : December 13th, 2022
 Description   : Master's Project "Source Separation for Robot Control"
 Topic         : Net module of the LSTM RNN Project
 """
@@ -291,127 +291,124 @@ class LitNeuralNet(pl.LightningModule):
         )
 
         # Add spectrograms and audios to tensorboard.
-
         writer = self.logger.experiment
+        if batch_idx in hp.log_samples:
+            mix_istft = torch.istft(
+                mix_co[0],
+                hp.stft_length,
+                hp.stft_shift,
+                window=hp.window,
+            )
+            clean_istft = torch.istft(
+                clean_co[0],
+                hp.stft_length,
+                hp.stft_shift,
+                window=hp.window,
+            )
+            pred_istft = torch.istft(
+                prediction[0],
+                hp.stft_length,
+                hp.stft_shift,
+                window=hp.window,
+            )
 
-        for sample in range(0, mix_co.shape[0]):
-            if sample == 1 and batch_idx == 0:
-                mix_istft = torch.istft(
-                    mix_co[sample],
-                    hp.stft_length,
-                    hp.stft_shift,
-                    window=hp.window,
-                )
-                clean_istft = torch.istft(
-                    clean_co[sample],
-                    hp.stft_length,
-                    hp.stft_shift,
-                    window=hp.window,
-                )
-                pred_istft = torch.istft(
-                    prediction[sample],
-                    hp.stft_length,
-                    hp.stft_shift,
-                    window=hp.window,
-                )
+            transform = torchaudio.transforms.Spectrogram(
+                n_fft=hp.stft_length, win_length=hp.stft_shift
+            )
+            mix_spec = transform(mix_istft.to("cpu"))
+            clean_spec = transform(clean_istft.to("cpu"))
+            pred_spec = transform(pred_istft.to("cpu"))
 
-                transform = torchaudio.transforms.Spectrogram(
-                    n_fft=hp.stft_length, win_length=hp.stft_shift
+            mix_spec = 10 * torch.log10(
+                torch.maximum(
+                    torch.square(torch.abs(mix_co[0])),
+                    (10 ** (-15))
+                    * torch.ones_like(mix_co[0], dtype=torch.float32),
                 )
-                mix_spec = transform(mix_istft.to("cpu"))
-                clean_spec = transform(clean_istft.to("cpu"))
-                pred_spec = transform(pred_istft.to("cpu"))
+            )
+            clean_spec = 10 * torch.log10(
+                torch.maximum(
+                    torch.square(torch.abs(clean_co[0])),
+                    (10 ** (-15))
+                    * torch.ones_like(
+                        clean_co[0], dtype=torch.float32
+                    ),
+                )
+            )
+            pred_spec = 10 * torch.log10(
+                torch.maximum(
+                    torch.square(torch.abs(prediction[0])),
+                    (10 ** (-15))
+                    * torch.ones_like(
+                        prediction[0], dtype=torch.float32
+                    ),
+                )
+            )
 
-                mix_spec = 10 * torch.log10(
-                    torch.maximum(
-                        torch.square(torch.abs(mix_co[sample])),
-                        (10 ** (-15))
-                        * torch.ones_like(mix_co[sample], dtype=torch.float32),
-                    )
-                )
-                clean_spec = 10 * torch.log10(
-                    torch.maximum(
-                        torch.square(torch.abs(clean_co[sample])),
-                        (10 ** (-15))
-                        * torch.ones_like(
-                            clean_co[sample], dtype=torch.float32
-                        ),
-                    )
-                )
-                pred_spec = 10 * torch.log10(
-                    torch.maximum(
-                        torch.square(torch.abs(prediction[sample])),
-                        (10 ** (-15))
-                        * torch.ones_like(
-                            prediction[sample], dtype=torch.float32
-                        ),
-                    )
-                )
+            fig_mix = plt.figure()
+            ax = fig_mix.add_subplot(111)
+            im = ax.imshow(
+                mix_spec.to("cpu"), origin="lower", vmin=-80, vmax=20
+            )
+            ax.set_xlabel("Frequency [bin]")
+            ax.set_ylabel("Time [bin]")
+            fig_mix.colorbar(im, orientation="vertical", pad=0.1)
+            plt.title("mix")
 
-                fig_mix = plt.figure()
-                ax = fig_mix.add_subplot(111)
-                im = ax.imshow(
-                    mix_spec.to("cpu"), origin="lower", vmin=-80, vmax=20
-                )
-                ax.set_xlabel("Frequency [bin]")
-                ax.set_ylabel("Time [bin]")
-                fig_mix.colorbar(im, orientation="vertical", pad=0.1)
-                plt.title("mix")
+            fig_clean = plt.figure()
+            ax = fig_clean.add_subplot(111)
+            im = ax.imshow(
+                clean_spec.to("cpu"), origin="lower", vmin=-80, vmax=20
+            )
+            ax.set_xlabel("Frequency [bin]")
+            ax.set_ylabel("Time [bin]")
+            fig_clean.colorbar(im, orientation="vertical", pad=0.1)
+            plt.title("clean")
 
-                fig_clean = plt.figure()
-                ax = fig_clean.add_subplot(111)
-                im = ax.imshow(
-                    clean_spec.to("cpu"), origin="lower", vmin=-80, vmax=20
-                )
-                ax.set_xlabel("Frequency [bin]")
-                ax.set_ylabel("Time [bin]")
-                fig_clean.colorbar(im, orientation="vertical", pad=0.1)
-                plt.title("clean")
+            fig_pred = plt.figure()
+            ax = fig_pred.add_subplot(111)
+            im = ax.imshow(
+                pred_spec.to("cpu"), origin="lower", vmin=-80, vmax=20
+            )
+            ax.set_xlabel("Frequency [bin]")
+            ax.set_ylabel("Time [bin]")
+            fig_pred.colorbar(im, orientation="vertical", pad=0.1)
+            plt.title("pred")
 
-                fig_pred = plt.figure()
-                ax = fig_pred.add_subplot(111)
-                im = ax.imshow(
-                    pred_spec.to("cpu"), origin="lower", vmin=-80, vmax=20
-                )
-                ax.set_xlabel("Frequency [bin]")
-                ax.set_ylabel("Time [bin]")
-                fig_pred.colorbar(im, orientation="vertical", pad=0.1)
-                plt.title("pred")
+            writer.add_figure(
+                "fig-mix-" + str(batch_idx),
+                fig_mix,
+                self.current_epoch,
+            )
+            writer.add_figure(
+                "fig-clean-" + str(batch_idx),
+                fig_clean,
+                self.current_epoch,
+            )
+            writer.add_figure(
+                "fig-pred-" + str(batch_idx),
+                fig_pred,
+                self.current_epoch,
+            )
 
-                writer.add_figure(
-                    "fig-mix-" + str(batch_idx) + "-" + str(sample),
-                    fig_mix,
-                    self.current_epoch,
-                )
-                writer.add_figure(
-                    "fig-clean-" + str(batch_idx) + "-" + str(sample),
-                    fig_clean,
-                    self.current_epoch,
-                )
-                writer.add_figure(
-                    "fig-pred-" + str(batch_idx) + "-" + str(sample),
-                    fig_pred,
-                    self.current_epoch,
-                )
-
-                writer.add_audio(
-                    "mix-" + str(batch_idx) + "-" + str(sample),
-                    mix_istft,
-                    self.current_epoch,
-                    16000,
-                )
-                writer.add_audio(
-                    "clean-" + str(batch_idx) + "-" + str(sample),
-                    clean_istft,
-                    self.current_epoch,
-                    16000,
-                )
-                writer.add_audio(
-                    "pred-" + str(batch_idx) + "-" + str(sample),
-                    pred_istft,
-                    self.current_epoch,
-                    16000,
-                )
+            writer.add_audio(
+                "mix-" + str(batch_idx),
+                mix_istft,
+                self.current_epoch,
+                16000,
+            )
+            writer.add_audio(
+                "clean-" + str(batch_idx),
+                clean_istft,
+                self.current_epoch,
+                16000,
+            )
+            writer.add_audio(
+                "pred-" + str(batch_idx),
+                pred_istft,
+                self.current_epoch,
+                16000,
+            )
 
         return loss
 
@@ -431,53 +428,45 @@ class LitNeuralNet(pl.LightningModule):
         _, clean_co, mix_co, prediction = self.common_step(batch, batch_idx)
 
         # Generate sound files for mix, clean and prediction.
+        mix_istft = torch.istft(
+            mix_co[0], hp.stft_length, hp.stft_shift, window=hp.window
+        )
+        clean_istft = torch.istft(
+            clean_co[0],
+            hp.stft_length,
+            hp.stft_shift,
+            window=hp.window,
+        )
+        pred_istft = torch.istft(
+            prediction[0],
+            hp.stft_length,
+            hp.stft_shift,
+            window=hp.window,
+        )
 
-        for sample in range(0, mix_co.shape[0]):
-            mix_istft = torch.istft(
-                mix_co[sample], hp.stft_length, hp.stft_shift, window=hp.window
-            )
-            clean_istft = torch.istft(
-                clean_co[sample],
-                hp.stft_length,
-                hp.stft_shift,
-                window=hp.window,
-            )
-            pred_istft = torch.istft(
-                prediction[sample],
-                hp.stft_length,
-                hp.stft_shift,
-                window=hp.window,
-            )
-
-            sf.write(
-                hp.OUT_DIR
-                + "mix-"
-                + str(batch_idx)
-                + "-"
-                + str(sample)
-                + ".wav",
-                mix_istft.cpu(),
-                hp.fs,
-            )
-            sf.write(
-                hp.OUT_DIR
-                + "clean-"
-                + str(batch_idx)
-                + "-"
-                + str(sample)
-                + ".wav",
-                clean_istft.cpu(),
-                hp.fs,
-            )
-            sf.write(
-                hp.OUT_DIR
-                + "pred-"
-                + str(batch_idx)
-                + "-"
-                + str(sample)
-                + ".wav",
-                pred_istft.cpu(),
-                hp.fs,
-            )
+        sf.write(
+            hp.OUT_DIR
+            + "mix-"
+            + str(batch_idx)
+            + ".wav",
+            mix_istft.cpu(),
+            hp.fs,
+        )
+        sf.write(
+            hp.OUT_DIR
+            + "clean-"
+            + str(batch_idx)
+            + ".wav",
+            clean_istft.cpu(),
+            hp.fs,
+        )
+        sf.write(
+            hp.OUT_DIR
+            + "pred-"
+            + str(batch_idx)
+            + ".wav",
+            pred_istft.cpu(),
+            hp.fs,
+        )
 
         return prediction, clean_co, mix_co

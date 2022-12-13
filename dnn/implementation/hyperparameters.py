@@ -5,7 +5,7 @@
 Authors       : Vadim Titov
 Matr.-Nr.     : 6021356
 Created       : June 23rd, 2022
-Last modified : December 12th, 2022
+Last modified : December 13th, 2022
 Description   : Master's Project "Source Separation for Robot Control"
 Topic         : Hyperparameters module of the LSTM RNN Project
 """
@@ -62,6 +62,8 @@ on_step = False
 on_epoch = True
 log_every_n_steps = 1
 tb_logger = pl_loggers.TensorBoardLogger(LOG_DIR, log_graph=False)
+# For which samples from a batch should spectrogram and wav audio be logged.
+log_samples = [0,1,2]
 
 #################
 # Checkpointing #
