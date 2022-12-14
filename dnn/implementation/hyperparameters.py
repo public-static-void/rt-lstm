@@ -71,7 +71,7 @@ log_samples = [0,1,2]
 
 # CHECKPOINT_DIR = "/informatik1/students/home/xmannwei/Beamformer/mp-2022/mp-2022/dnn/implementation/checkpoints/"
 CHECKPOINT_DIR = "checkpoints/"
-checkpoint_name = "epoch=65-step=132000.ckpt"
+checkpoint_name = "epoch=80-step=486000.ckpt"
 enable_checkpointing = True
 
 #############
