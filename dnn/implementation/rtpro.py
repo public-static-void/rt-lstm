@@ -10,12 +10,14 @@ Description   : Master's Project "Source Separation for Robot Control"
 Topic         : Real-time audio processing module of the LSTM RNN Project
 """
 
+from typing import Generator
 
-import pyaudio
 import torch
+import torchaudio
+from torchaudio.io import StreamReader
 
 # Sampling frequency
-FS = 44100
+FS = 48000
 # Chunk size in ms.
 CHUNK_SIZE_MS = 8
 # Block size in ms.
@@ -24,52 +26,58 @@ BLOCK_SIZE_MS = 32
 CHUNK_SIZE = int(FS * CHUNK_SIZE_MS / 1000)
 # Block size in samples.
 BLOCK_SIZE = int(FS * BLOCK_SIZE_MS / 1000)
-# Number of channels.
+# Number of channels. TODO: is there a way to change it in torchaudio?
 CHANNELS = 1
+# Hardware source device identifier.
+SRC = "hw:1"
+FORMAT = "alsa"
 
 
-PA = pyaudio.PyAudio()
+def init_streamer() -> StreamReader:
+    """Helper function.
+
+    Initializes and returns an instance of `torchaudio.io.StreamReader`.
+
+    Returns
+    -------
+        Initialized instance of `torchaudio.io.StreamReader`.
+    """
+    streamer = StreamReader(src=SRC, format=FORMAT)
+    return streamer
 
 
-def start_stream() -> pyaudio.Stream:
+def start_stream(streamer: StreamReader) -> Generator[bytes, None, None]:
     """Helper function.
 
     Opens a stream.
 
     Returns
     -------
-    pyaudio.Stream
+    Generator
         Opened stream.
     """
-    stream = PA.open(
-        # FIXME: For some reason overflows quickly from time to time.
-        format=pyaudio.paFloat32,
-        channels=CHANNELS,
-        rate=FS,
-        input=True,
-        frames_per_buffer=CHUNK_SIZE,
+    streamer.add_basic_audio_stream(
+        frames_per_chunk=CHUNK_SIZE,
+        buffer_chunk_size=CHUNK_SIZE,
+        sample_rate=FS,
     )
-    return stream
+    # print(streamer.get_src_stream_info(0))
+    # print(streamer.get_out_stream_info(0))
+    stream_iteartor = streamer.stream(timeout=-1, backoff=1.0)
+    return stream_iteartor
 
 
-def stop_stream(stream: pyaudio.Stream) -> None:
+def stop_stream(streamer: StreamReader, idx: int) -> None:
     """Helper function.
 
-    Closes the `stream` while keeping PyAudio instance alive.
+    Closes the `stream` while keeping StreamReader instance alive.
 
-    stream : pyaudio.Stream
-        Stream to close.
+    streamer : StreamReader
+        StreamReader where thr stream to close is attached to.
+    idx : int
+        Index of the stream to close.
     """
-    stream.stop_stream()
-    stream.close()
-
-
-def close_pa() -> None:
-    """Helper function.
-
-    Terminates the PyAudio instance.
-    """
-    PA.terminate()
+    streamer.remove_stream(idx)
 
 
 def init_block(block_size: int) -> torch.Tensor:
@@ -89,26 +97,30 @@ def init_block(block_size: int) -> torch.Tensor:
     return block
 
 
-def read_chunk(stream: pyaudio.Stream) -> bytes:
+def read_chunk(stream_iterator: Generator[bytes, None, None]) -> bytes:
     """Helper function.
 
     Reads a chunk from `stream`.
 
-    stream : pyaudio.Stream
-
+    stream : Generator
+        `StreamReader` generator yielding `bytes`.
 
     Returns
     -------
     bytes
-
+        Chunk of data.
     """
-    data = stream.read(CHUNK_SIZE)
-
-    chunk = torch.frombuffer(data, dtype=torch.float32)
+    data = next(stream_iterator)
+    # Data comes as a list containing a tensor, so extract it.
+    data_tensor = data[0]
+    # Then, multiple channels are present, so just extract the first one.
+    chunk = data_tensor[:, 0]
     return chunk
 
 
-def add_chunk(block: torch.Tensor, stream: pyaudio.Stream) -> torch.Tensor:
+def add_chunk(
+    block: torch.Tensor, stream: Generator[bytes, None, None]
+) -> torch.Tensor:
     """Helper function.
 
     Reads a `chunk` from the `stream` and adds it to the `block`. Shifts
@@ -118,8 +130,8 @@ def add_chunk(block: torch.Tensor, stream: pyaudio.Stream) -> torch.Tensor:
         Block of multiple chunks but of constant size.
     chunk : torch.Tensor
         Chunk of new data from the `stream`.
-    stream : pyaudio.Stream
-        Stream to read a `chunk` of data from.
+    stream : Generator
+        `StreamReader` generator to read a `chunk` of data from.
 
     Returns
     -------
@@ -151,19 +163,19 @@ def compute_FFT(block: torch.Tensor) -> torch.Tensor:
 
 def main():
     block = init_block(BLOCK_SIZE)
-    stream = start_stream()
-
+    streamer = init_streamer()
+    stream = start_stream(streamer)
+    i = 0
     try:
         while True:
             block = add_chunk(block, stream)
-            print(block)
+            print("input CHUNK:", i, block)
             block_fft = compute_FFT(block)
-            print(block_fft)
-
+            print("CHUNK FFT:", i, block_fft)
+            i += 1
     except:
         print("error/interrupt")
-        stop_stream(stream)
-        close_pa()
+        stop_stream(streamer, streamer.default_audio_stream)
         return
 
 
