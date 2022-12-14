@@ -123,7 +123,7 @@ class LitNeuralNet(pl.LightningModule):
         x = x.permute(0, 3, 1, 2)
         x = self.tanh(x)
 
-        # Output = compessed mask.
+        # Output = compessed mask, new hidden and cell states.
         return x, h_new, c_new
 
     def comp_mse(self, pred: torch.Tensor, clean: torch.Tensor) -> float:
