@@ -5,7 +5,7 @@
 Authors       : Vadim Titov
 Matr.-Nr.     : 6021356
 Created       : June 23rd, 2022
-Last modified : December 13th, 2022
+Last modified : December 14th, 2022
 Description   : Master's Project "Source Separation for Robot Control"
 Topic         : Hyperparameters module of the LSTM RNN Project
 """
@@ -72,6 +72,7 @@ log_samples = [0,1,2]
 # CHECKPOINT_DIR = "/informatik1/students/home/xmannwei/Beamformer/mp-2022/mp-2022/dnn/implementation/checkpoints/"
 CHECKPOINT_DIR = "checkpoints/"
 checkpoint_name = "epoch=80-step=486000.ckpt"
+# checkpoint_name = "epoch=49-step=300000.ckpt"
 enable_checkpointing = True
 
 #############
@@ -96,8 +97,9 @@ checkpointing = ModelCheckpoint(
 # Running in fast_dev_run mode: will run a full train, val, test and
 # prediction loop using 1 batch(es).
 is_test_run = False
-# Limit batches for debug training runs.
+# Limit batches for debug training/prediction runs.
 limit_train_batches = 1.0
+limit_val_batches = 1.0
 limit_predict_batches = 1.0
 overfit_batches = 0.0
 # Anomaly detection

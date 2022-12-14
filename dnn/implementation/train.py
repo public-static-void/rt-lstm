@@ -5,7 +5,7 @@
 Authors       : Vadim Titov
 Matr.-Nr.     : 6021356
 Created       : June 23rd, 2022
-Last modified : November 26th, 2022
+Last modified : December 14th, 2022
 Description   : Master's Project "Source Separation for Robot Control"
 Topic         : Training module of the LSTM RNN Project
 """
@@ -34,6 +34,7 @@ def main():
         log_every_n_steps=hp.log_every_n_steps,
         logger=hp.tb_logger,
         limit_train_batches=hp.limit_train_batches,
+        limit_val_batches=hp.limit_val_batches,
         overfit_batches=hp.overfit_batches,
         auto_lr_find=hp.auto_lr_find,
     )
