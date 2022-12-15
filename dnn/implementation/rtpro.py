@@ -16,21 +16,29 @@ import torch
 import torchaudio
 from torchaudio.io import StreamReader
 
-# Sampling frequency
-FS = 48000
+# Input device sampling frequency in Hz.
+INPUT_FS = 48000
+# Processing sampling frequency in Hz.
+PROCESSING_FS = 16000
+# Downsampling factor.
+DSF = int(INPUT_FS / PROCESSING_FS)
 # Chunk size in ms.
 CHUNK_SIZE_MS = 8
 # Block size in ms.
 BLOCK_SIZE_MS = 32
-# Chunk size in samples.
-CHUNK_SIZE = int(FS * CHUNK_SIZE_MS / 1000)
-# Block size in samples.
-BLOCK_SIZE = int(FS * BLOCK_SIZE_MS / 1000)
-# Number of channels. TODO: is there a way to change it in torchaudio?
-CHANNELS = 1
+# Input chunk size in samples.
+IN_CHUNK_SIZE = int(INPUT_FS * CHUNK_SIZE_MS / 1000)
+# Input cock size in samples.
+IN_BLOCK_SIZE = int(INPUT_FS * BLOCK_SIZE_MS / 1000)
+# Processing chunk size in samples.
+PRO_CHUNK_SIZE = int(PROCESSING_FS * CHUNK_SIZE_MS / 1000)
+# Processing block size in samples.
+PRO_BLOCK_SIZE = int(PROCESSING_FS * BLOCK_SIZE_MS / 1000)
 # Hardware source device identifier.
 SRC = "hw:1"
 FORMAT = "alsa"
+# Window scaling factor.
+WSF = 2  # 75% overlap.
 
 
 def init_streamer() -> StreamReader:
@@ -57,9 +65,9 @@ def start_stream(streamer: StreamReader) -> Generator[bytes, None, None]:
         Opened stream.
     """
     streamer.add_basic_audio_stream(
-        frames_per_chunk=CHUNK_SIZE,
-        buffer_chunk_size=CHUNK_SIZE,
-        sample_rate=FS,
+        frames_per_chunk=IN_CHUNK_SIZE,
+        buffer_chunk_size=IN_CHUNK_SIZE,
+        sample_rate=INPUT_FS,
     )
     # print(streamer.get_src_stream_info(0))
     # print(streamer.get_out_stream_info(0))
@@ -97,6 +105,25 @@ def init_block(block_size: int) -> torch.Tensor:
     return block
 
 
+def resample(input: torch.Tensor, factor: float) -> torch.Tensor:
+    """Helper function.
+
+    Resamples input signal with provided resampling factor.
+
+    input : torch.Tensor
+        Input signal.
+    factor : float
+        Resampling factor.
+
+    Returns
+    -------
+    torch.Tensor
+        Resampled signal.
+    """
+    out = input[::factor]
+    return out
+
+
 def read_chunk(stream_iterator: Generator[bytes, None, None]) -> bytes:
     """Helper function.
 
@@ -115,7 +142,9 @@ def read_chunk(stream_iterator: Generator[bytes, None, None]) -> bytes:
     data_tensor = data[0]
     # Then, multiple channels are present, so just extract the first one.
     chunk = data_tensor[:, 0]
-    return chunk
+    # Resample.
+    rs_chunk = resample(chunk, DSF)
+    return rs_chunk
 
 
 def add_chunk(
@@ -139,9 +168,18 @@ def add_chunk(
         Block with new `chunk` of data.
     """
     new_block = torch.clone(block)
-    new_block[:-CHUNK_SIZE] = block[CHUNK_SIZE:]
-    new_block[-CHUNK_SIZE:] = read_chunk(stream)
+    new_block[:-PRO_CHUNK_SIZE] = block[PRO_CHUNK_SIZE:]
+    new_block[-PRO_CHUNK_SIZE:] = read_chunk(stream)
     return new_block
+
+
+def overlap_add(
+    block_old: torch.Tensor, block_new: torch.Tensor
+) -> torch.Tensor:
+    # Overlap add.
+    out = block_old + block_new
+    # Rescale overlapping part.
+    out = out[:PRO_CHUNK_SIZE] / WSF
 
 
 def compute_FFT(block: torch.Tensor) -> torch.Tensor:
@@ -161,8 +199,25 @@ def compute_FFT(block: torch.Tensor) -> torch.Tensor:
     return block_fft
 
 
+def compute_IFFT(block: torch.Tensor) -> torch.Tensor:
+    """Helper function.
+
+    Computes the IFFT of a given frequency domain signal `block`.
+
+    block : torch.Tensor
+        Block of frequency domain signal.
+
+    Returns
+    -------
+    torch.Tensor
+        IFFT of the given `block`.
+    """
+    block_ifft = torch.fft.ifft(block)
+    return block_ifft
+
+
 def main():
-    block = init_block(BLOCK_SIZE)
+    block = init_block(PRO_BLOCK_SIZE)
     streamer = init_streamer()
     stream = start_stream(streamer)
     i = 0
@@ -171,7 +226,9 @@ def main():
             block = add_chunk(block, stream)
             print("input CHUNK:", i, block)
             block_fft = compute_FFT(block)
-            print("CHUNK FFT:", i, block_fft)
+            print("BLOCK FFT:", i, block_fft)
+            # block_ifft = compute_IFFT(block_fft)
+            # print("BLOCK IFFT:", i, block_ifft)
             i += 1
     except:
         print("error/interrupt")
