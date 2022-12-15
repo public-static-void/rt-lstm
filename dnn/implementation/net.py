@@ -167,7 +167,8 @@ class LitNeuralNet(pl.LightningModule):
         # Adam optimizer.
         return torch.optim.Adam(self.parameters(), lr=self.learning_rate)
 
-    def common_step(self, batch: torch.Tensor, batch_idx: int) -> tuple:
+    def common_step(self, batch: torch.Tensor, batch_idx: int,
+                    h_pre: torch.Tensor=None, c_pre: torch.Tensor=None) -> tuple:
         """Helper function.
 
         Implements functionality used in training, validation and prediction
@@ -191,19 +192,14 @@ class LitNeuralNet(pl.LightningModule):
         noise = noise.float()
         mix = mix.float()
 
-        # Init LSTM hidden state and cell state.
-        # TODO: only works for batch_size of 1.
-        hidden_state_size = hp.batch_size * mix.shape[3]
-
         # Compute mask.
-        comp_mask, h_new, c_new = self(mix, None, None)
+        comp_mask, h_new, c_new = self(mix, h_pre, c_pre)
         decomp_mask = -torch.log((hp.K - comp_mask) / (hp.K + comp_mask))
         mix_co = torch.complex(mix[:, 0], mix[:, 3])
         clean_co = torch.complex(clean[:, 0], clean[:, 1])
         mask_co = torch.complex(decomp_mask[:, 0], decomp_mask[:, 1])
-        # Carry LSTM hidden state over to next iteration.
-        self.h_pre = h_new.detach()
-        self.c_pre = c_new.detach()
+        h_out = h_new.detach()
+        c_out = c_new.detach()
 
         # Apply mask to mixture (noisy) input signal.
         prediction = mask_co * mix_co
@@ -219,9 +215,10 @@ class LitNeuralNet(pl.LightningModule):
         # si_sdr = SI_SDR().to("cuda")
         # loss = -si_sdr(pred_istft, clean_istft)
 
-        return loss, clean_co, mix_co, prediction
+        return loss, clean_co, mix_co, prediction, h_out, c_out
 
-    def training_step(self, batch: torch.Tensor, batch_idx: int) -> float:
+    def training_step(self, batch: torch.Tensor, batch_idx: int,
+                      h_pre: torch.Tensor=None, c_pre: torch.Tensor=None) -> float:
         """Implements the training step functionality.
 
         batch : torch.Tensor
@@ -235,7 +232,7 @@ class LitNeuralNet(pl.LightningModule):
             Training loss.
         """
         # Forward pass.
-        loss, _, _, _ = self.common_step(batch, batch_idx)
+        loss, _, _, _, _, _ = self.common_step(batch, batch_idx, h_pre, c_pre)
 
         # Logging.
         self.log(
@@ -248,7 +245,8 @@ class LitNeuralNet(pl.LightningModule):
 
         return loss
 
-    def validation_step(self, batch: torch.Tensor, batch_idx: int) -> float:
+    def validation_step(self, batch: torch.Tensor, batch_idx: int, h_pre:
+                        torch.Tensor=None, c_pre: torch.Tensor=None) -> float:
         """Implements the validation step functionality.
 
         batch : torch.Tensor
@@ -262,7 +260,10 @@ class LitNeuralNet(pl.LightningModule):
             Training loss.
         """
         # Forward pass.
-        loss, clean_co, mix_co, prediction = self.common_step(batch, batch_idx)
+        loss, clean_co, mix_co, prediction, _, _ = self.common_step(batch,
+                                                                    batch_idx,
+                                                                    h_pre,
+                                                                    c_pre)
 
         # Logging.
         self.log(
@@ -410,7 +411,8 @@ class LitNeuralNet(pl.LightningModule):
 
         return loss
 
-    def predict_step(self, batch: torch.Tensor, batch_idx: int) -> tuple:
+    def predict_step(self, batch: torch.Tensor, batch_idx: int, h_pre:
+                     torch.Tensor=None, c_pre: torch.Tensor=None) -> tuple:
         """Implements the prediction step functionality.
 
         batch : torch.Tensor
@@ -423,7 +425,10 @@ class LitNeuralNet(pl.LightningModule):
         tuple
             Prediction, clean, mix.
         """
-        _, clean_co, mix_co, prediction = self.common_step(batch, batch_idx)
+        _, clean_co, mix_co, prediction, h_new, c_new = self.common_step(batch,
+                                                                         batch_idx,
+                                                                         h_pre,
+                                                                         c_pre)
 
         # Generate sound files for mix, clean and prediction.
         mix_istft = torch.istft(
@@ -467,4 +472,4 @@ class LitNeuralNet(pl.LightningModule):
             hp.fs,
         )
 
-        return prediction, clean_co, mix_co
+        return prediction, clean_co, mix_co, h_new, c_new
