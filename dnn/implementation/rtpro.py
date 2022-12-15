@@ -235,12 +235,13 @@ def apply_window_on_block(block: torch.Tensor) -> torch.Tensor:
 
 
 def get_overlapping_chunk_sum_from_blocks(
-    block1: torch.Tensor,
-    block2: torch.Tensor,
-    block3: torch.Tensor,
-    block4: torch.Tensor,
+        blocks_queue
 ) -> torch.Tensor:
     # 1 block consists of 4 chunks
+    block1 = blocks_queue[0]
+    block2 = blocks_queue[1]
+    block3 = blocks_queue[2]
+    block4 = blocks_queue[3]
     chunk_sum = (
         block1[:PRO_CHUNK_SIZE]
         + block2[PRO_CHUNK_SIZE: PRO_CHUNK_SIZE * 2]
@@ -256,6 +257,7 @@ def remove_first_block_and_reorder(blocks_cache: []):
     blocks_cache[1] = blocks_cache[2]
     blocks_cache[2] = blocks_cache[3]
     # last index, 3 can now be overwritten by new block
+    return blocks_cache
 
 
 def main():
@@ -266,10 +268,10 @@ def main():
     try:
         # intialize blocks list for 4 blocks with zero-tensors of corresponding shapes (see net output)
         blocks_queue = [
-            torch.zeros(1, 1, 1),
-            torch.zeros(1, 1, 1),
-            torch.zeros(1, 1, 1),
-            torch.zeros(1, 1, 1),
+            torch.zeros(hyperparameters.stft_length),
+            torch.zeros(hyperparameters.stft_length),
+            torch.zeros(hyperparameters.stft_length),
+            torch.zeros(hyperparameters.stft_length)
         ]
         while True:
             block = add_chunk(block, stream)
