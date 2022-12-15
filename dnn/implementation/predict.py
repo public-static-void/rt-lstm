@@ -45,7 +45,8 @@ def main():
     )
 
     # Perform prediction.
-    predictions = trainer.predict(trained_model, dataloaders.test_dataloader())
+    predictions = trainer.predict(trained_model, dataloaders.test_dataloader(),
+                                  None, None)
     # performance.__calculate_pesq__()
 
 

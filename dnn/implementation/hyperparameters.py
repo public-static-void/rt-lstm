@@ -46,7 +46,7 @@ hidden_size_2 = 128
 output_size = 2  # 1 channel * 2 (Re + Im).
 t_bidirectional = False
 f_bidirectional = True
-batch_size = 1
+batch_size = 2
 batch_first = True
 num_epochs = 100
 learning_rate = 0.0005
@@ -71,8 +71,8 @@ log_samples = [0,1,2]
 
 # CHECKPOINT_DIR = "/informatik1/students/home/xmannwei/Beamformer/mp-2022/mp-2022/dnn/implementation/checkpoints/"
 CHECKPOINT_DIR = "checkpoints/"
-checkpoint_name = "epoch=80-step=486000.ckpt"
-# checkpoint_name = "epoch=49-step=300000.ckpt"
+# checkpoint_name = "epoch=1-step=6000.ckpt" #  bi-directional
+checkpoint_name = "epoch=1-step=6000.ckpt" #  uni-directional
 enable_checkpointing = True
 
 #############
