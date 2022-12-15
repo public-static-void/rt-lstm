@@ -12,10 +12,12 @@ Topic         : Real-time audio processing module of the LSTM RNN Project
 
 from typing import Generator
 
+from scipy.signal import get_window
+import hyperparameters
+import numpy as np
 import torch
 import torchaudio
 from torchaudio.io import StreamReader
-import hyperparameters
 
 # Input device sampling frequency in Hz.
 INPUT_FS = 48000
@@ -200,7 +202,9 @@ def compute_FFT(block: torch.Tensor) -> torch.Tensor:
     return block_fft
 
 
-def compute_IFFT_from_overlapping_chunk(chunk_sum: torch.Tensor) -> torch.Tensor:
+def compute_IFFT_from_overlapping_chunk(
+    chunk_sum: torch.Tensor,
+) -> torch.Tensor:
     """Helper function.
 
     Computes the IFFT of a given frequency domain signal `block`.
@@ -216,18 +220,36 @@ def compute_IFFT_from_overlapping_chunk(chunk_sum: torch.Tensor) -> torch.Tensor
     chunk_sum_ifft = torch.fft.ifft(chunk_sum)
     return chunk_sum_ifft
 
-def apply_window_on_block(block: torch.Tensor) -> torch.Tensor:
 
-    windowed_block = block * hyperparameters.window
+def apply_window_on_block(block: torch.Tensor) -> torch.Tensor:
+    window = torch.from_numpy(
+        np.sqrt(
+            get_window(
+                "hann", hyperparameters.stft_length, hyperparameters.fftbins
+            )
+        )
+    )
+    windowed_block = block * window
+
     return windowed_block
 
 
-def get_overlapping_chunk_sum_from_blocks(block1: torch.Tensor, block2: torch.Tensor, block3: torch.Tensor, block4: torch.Tensor) -> torch.Tensor:
-
+def get_overlapping_chunk_sum_from_blocks(
+    block1: torch.Tensor,
+    block2: torch.Tensor,
+    block3: torch.Tensor,
+    block4: torch.Tensor,
+) -> torch.Tensor:
     # 1 block consists of 4 chunks
-    chunk_sum = block1[:PRO_CHUNK_SIZE] + block2[PRO_CHUNK_SIZE:PRO_CHUNK_SIZE*2] + block3[PRO_CHUNK_SIZE*2:PRO_CHUNK_SIZE*3] + block4[PRO_CHUNK_SIZE*3:PRO_CHUNK_SIZE*4]
+    chunk_sum = (
+        block1[:PRO_CHUNK_SIZE]
+        + block2[PRO_CHUNK_SIZE: PRO_CHUNK_SIZE * 2]
+        + block3[PRO_CHUNK_SIZE * 2: PRO_CHUNK_SIZE * 3]
+        + block4[PRO_CHUNK_SIZE * 3: PRO_CHUNK_SIZE * 4]
+    )
     # Rescale overlapping part.
     return chunk_sum
+
 
 def remove_first_block_and_reorder(blocks_cache: []):
     blocks_cache[0] = blocks_cache[1]
@@ -235,30 +257,39 @@ def remove_first_block_and_reorder(blocks_cache: []):
     blocks_cache[2] = blocks_cache[3]
     # last index, 3 can now be overwritten by new block
 
+
 def main():
     block = init_block(PRO_BLOCK_SIZE)
     streamer = init_streamer()
     stream = start_stream(streamer)
     i = 0
     try:
-
         # intialize blocks list for 4 blocks with zero-tensors of corresponding shapes (see net output)
-        blocks_queue = [torch.zeros(1,1,1), torch.zeros(1,1,1), torch.zeros(1,1,1), torch.zeros(1,1,1)]
+        blocks_queue = [
+            torch.zeros(1, 1, 1),
+            torch.zeros(1, 1, 1),
+            torch.zeros(1, 1, 1),
+            torch.zeros(1, 1, 1),
+        ]
         while True:
-
             block = add_chunk(block, stream)
             print("input CHUNK:", i, block)
             windowed_new_block_before_FFT = apply_window_on_block(block)
             block_fft = compute_FFT(windowed_new_block_before_FFT)
             print("BLOCK FFT:", i, block_fft)
             # TODO net processing
+            net_output = block_fft
             windowed_new_block_after_net = apply_window_on_block(net_output)
             blocks_queue = remove_first_block_and_reorder(blocks_queue)
             blocks_queue[3] = windowed_new_block_after_net
-            overlapping_chunks = get_overlapping_chunk_sum_from_blocks(blocks_queue)
-            time_domain_signal_chunk = compute_IFFT_from_overlapping_chunk(overlapping_chunks)
+            overlapping_chunks = get_overlapping_chunk_sum_from_blocks(
+                blocks_queue
+            )
+            time_domain_signal_chunk = compute_IFFT_from_overlapping_chunk(
+                overlapping_chunks
+            )
             print(time_domain_signal_chunk)
-            #output streaming
+            # output streaming
             print(i)
             i += 1
     except:
