@@ -202,8 +202,8 @@ def compute_FFT(block: torch.Tensor) -> torch.Tensor:
     return block_fft
 
 
-def compute_IFFT_from_overlapping_chunk(
-    chunk_sum: torch.Tensor,
+def compute_IFFT_from_block(
+    block: torch.Tensor,
 ) -> torch.Tensor:
     """Helper function.
 
@@ -217,8 +217,8 @@ def compute_IFFT_from_overlapping_chunk(
     torch.Tensor
         IFFT of the given `block`.
     """
-    chunk_sum_ifft = torch.fft.ifft(chunk_sum)
-    return chunk_sum_ifft
+    block_ifft = torch.fft.ifft(block)
+    return block_ifft
 
 
 def apply_window_on_block(block: torch.Tensor) -> torch.Tensor:
@@ -279,16 +279,15 @@ def main():
             print("BLOCK FFT:", i, block_fft)
             # TODO net processing
             net_output = block_fft
-            windowed_new_block_after_net = apply_window_on_block(net_output)
+
+            ifft_block = compute_IFFT_from_block(net_output)
+            windowed_new_block_after_net = apply_window_on_block(ifft_block)
             blocks_queue = remove_first_block_and_reorder(blocks_queue)
             blocks_queue[3] = windowed_new_block_after_net
-            overlapping_chunks = get_overlapping_chunk_sum_from_blocks(
+            overlapping_chunk = get_overlapping_chunk_sum_from_blocks(
                 blocks_queue
             )
-            time_domain_signal_chunk = compute_IFFT_from_overlapping_chunk(
-                overlapping_chunks
-            )
-            print(time_domain_signal_chunk)
+            print(overlapping_chunk)
             # output streaming
             print(i)
             i += 1
