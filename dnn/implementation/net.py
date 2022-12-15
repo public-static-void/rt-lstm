@@ -5,7 +5,7 @@
 Authors       : Vadim Titov
 Matr.-Nr.     : 6021356
 Created       : June 23rd, 2022
-Last modified : December 13th, 2022
+Last modified : December 15th, 2022
 Description   : Master's Project "Source Separation for Robot Control"
 Topic         : Net module of the LSTM RNN Project
 """
@@ -64,28 +64,27 @@ class LitNeuralNet(pl.LightningModule):
         self.f_bidirectional = hp.f_bidirectional
         self.lstm1_in = self.input_size
         self.lstm1_out = self.hidden_size_1
+        self.lstm2_in = 2 * self.hidden_size_1
 
         if self.t_bidirectional is True:
-            self.lstm2_in = 2 * self.hidden_size_1
             self.lstm2_out = self.hidden_size_2
             self.dense_in = 2 * self.hidden_size_2
         else:
-            self.lstm2_in = self.hidden_size_1
             self.lstm2_out = int(self.hidden_size_2 / 2)
-            self.dense_in = self.hidden_size_2
+            self.dense_in = int(self.hidden_size_2 / 2)
 
         # LSTM Forward layer 1.
         self.lstm1 = nn.LSTM(
             self.lstm1_in,
             self.lstm1_out,
-            bidirectional=self.t_bidirectional,
+            bidirectional=self.f_bidirectional,
             batch_first=hp.batch_first,
         )
         # LSTM Forward layer 2.
         self.lstm2 = nn.LSTM(
             self.lstm2_in,
             self.lstm2_out,
-            bidirectional=self.f_bidirectional,
+            bidirectional=self.t_bidirectional,
             batch_first=hp.batch_first,
         )
         # Dense (= Fully connected) layer.
@@ -111,13 +110,27 @@ class LitNeuralNet(pl.LightningModule):
            Compressed mask, (current hidden state, current cell state).
         """
         n_batch, n_ch, n_f, n_t = x.shape
+        # Init hidden and cell state of time LSTM to zeros if not provided.
+        hidden_state_size = hp.batch_size * n_f
+        if h_pre is None and c_pre is None:
+            if self.t_bidirectional is True:
+                h_pre = torch.randn(2, hidden_state_size,
+                                 self.hidden_size_2).to(hp.device)
+                c_pre = torch.randn(2, hidden_state_size,
+                                 self.hidden_size_2).to(hp.device)
+            else:
+                h_pre = torch.randn(1, hidden_state_size,
+                                 int(self.hidden_size_2 / 2)).to(hp.device)
+                c_pre = torch.randn(1, hidden_state_size,
+                                 int(self.hidden_size_2 / 2)).to(hp.device)
+
         x = x.permute(0, 3, 2, 1)
         x = x.reshape(n_batch * n_t, n_f, n_ch)
-        x, (h_new, c_new) = self.lstm1(x, (h_pre, c_pre))
+        x, _ = self.lstm1(x)
         x = x.reshape(n_batch, n_t, n_f, self.lstm2_in)
         x = x.permute(0, 2, 1, 3)
         x = x.reshape(n_batch * n_f, n_t, self.lstm2_in)
-        x, _ = self.lstm2(x)
+        x, (h_new, c_new) = self.lstm2(x, (h_pre, c_pre))
         x = x.reshape(n_batch, n_f, n_t, self.dense_in)
         x = self.dense(x)
         x = x.permute(0, 3, 1, 2)
@@ -182,23 +195,8 @@ class LitNeuralNet(pl.LightningModule):
         # TODO: only works for batch_size of 1.
         hidden_state_size = hp.batch_size * mix.shape[3]
 
-        if self.t_bidirectional is True:
-            h_0 = torch.randn(2, hidden_state_size,
-                             self.hidden_size_1).to(hp.device)
-            c_0 = torch.randn(2, hidden_state_size,
-                             self.hidden_size_1).to(hp.device)
-        else:
-            h_0 = torch.randn(1, hidden_state_size,
-                             self.hidden_size_1).to(hp.device)
-            c_0 = torch.randn(1, hidden_state_size,
-                             self.hidden_size_1).to(hp.device)
-
-        # Init LSTM hidden state in first iteration.
-        if batch_idx == 0:
-            self.h_pre = h_0
-            self.c_pre = c_0
         # Compute mask.
-        comp_mask, h_new, c_new = self(mix, self.h_pre, self.c_pre)
+        comp_mask, h_new, c_new = self(mix, None, None)
         decomp_mask = -torch.log((hp.K - comp_mask) / (hp.K + comp_mask))
         mix_co = torch.complex(mix[:, 0], mix[:, 3])
         clean_co = torch.complex(clean[:, 0], clean[:, 1])
