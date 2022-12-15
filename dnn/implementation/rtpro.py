@@ -2,21 +2,20 @@
 # -*- coding: utf-8 -*-
 
 """
-Authors       : Vadim Titov
-Matr.-Nr.     : 6021356
+Authors       : Vadim Titov, Henning Möllers
+Matr.-Nr.     : 6021356, ...
 Created       : December 14th, 2022
-Last modified : December 14th, 2022
+Last modified : December 15th, 2022
 Description   : Master's Project "Source Separation for Robot Control"
 Topic         : Real-time audio processing module of the LSTM RNN Project
 """
 
-from typing import Generator
+from typing import Generator, List
 
-from scipy.signal import get_window
 import hyperparameters
 import numpy as np
 import torch
-import torchaudio
+from scipy.signal import get_window
 from torchaudio.io import StreamReader
 
 # Input device sampling frequency in Hz.
@@ -31,7 +30,7 @@ CHUNK_SIZE_MS = 8
 BLOCK_SIZE_MS = 32
 # Input chunk size in samples.
 IN_CHUNK_SIZE = int(INPUT_FS * CHUNK_SIZE_MS / 1000)
-# Input cock size in samples.
+# Input block size in samples.
 IN_BLOCK_SIZE = int(INPUT_FS * BLOCK_SIZE_MS / 1000)
 # Processing chunk size in samples.
 PRO_CHUNK_SIZE = int(PROCESSING_FS * CHUNK_SIZE_MS / 1000)
@@ -40,8 +39,6 @@ PRO_BLOCK_SIZE = int(PROCESSING_FS * BLOCK_SIZE_MS / 1000)
 # Hardware source device identifier.
 SRC = "hw:1"
 FORMAT = "alsa"
-# Window scaling factor.
-WSF = 2  # 75% overlap.
 
 
 def init_streamer() -> StreamReader:
@@ -176,15 +173,6 @@ def add_chunk(
     return new_block
 
 
-def overlap_add(
-    block_old: torch.Tensor, block_new: torch.Tensor
-) -> torch.Tensor:
-    # Overlap add.
-    out = block_old + block_new
-    # Rescale overlapping part.
-    out = out[:PRO_CHUNK_SIZE] / WSF
-
-
 def compute_FFT(block: torch.Tensor) -> torch.Tensor:
     """Helper function.
 
@@ -202,9 +190,7 @@ def compute_FFT(block: torch.Tensor) -> torch.Tensor:
     return block_fft
 
 
-def compute_IFFT_from_block(
-    block: torch.Tensor,
-) -> torch.Tensor:
+def compute_IFFT_from_block(block: torch.Tensor) -> torch.Tensor:
     """Helper function.
 
     Computes the IFFT of a given frequency domain signal `block`.
@@ -222,6 +208,18 @@ def compute_IFFT_from_block(
 
 
 def apply_window_on_block(block: torch.Tensor) -> torch.Tensor:
+    """Helper function.
+
+    Applies a window to a signal tensor.
+
+    block : torch.Tensor
+        Time domain signal tensor.
+
+    Returns
+    -------
+    torch.Tensor
+        Windowed tensor.
+    """
     window = torch.from_numpy(
         np.sqrt(
             get_window(
@@ -234,9 +232,19 @@ def apply_window_on_block(block: torch.Tensor) -> torch.Tensor:
     return windowed_block
 
 
-def get_overlapping_chunk_sum_from_blocks(
-        blocks_queue
-) -> torch.Tensor:
+def get_overlapping_chunk_sum_from_blocks(blocks_queue: List) -> torch.Tensor:
+    """Helper function.
+
+    Sums up overlapping  chunks of blocks.
+
+    blocks_queue : List
+        List of blocks.
+
+    Returns
+    -------
+    torch.Tensor
+        Summed up chunks.
+    """
     # 1 block consists of 4 chunks
     block1 = blocks_queue[0]
     block2 = blocks_queue[1]
@@ -252,7 +260,19 @@ def get_overlapping_chunk_sum_from_blocks(
     return chunk_sum
 
 
-def remove_first_block_and_reorder(blocks_cache: []):
+def remove_first_block_and_reorder(blocks_cache: List) -> List:
+    """Helper function.
+
+    Shifts list of blocks by one block to the left.
+
+    blocks_cache : List
+        Input list of blocks.
+
+    Returns
+    -------
+    List
+        Output list of blocks.
+    """
     blocks_cache[0] = blocks_cache[1]
     blocks_cache[1] = blocks_cache[2]
     blocks_cache[2] = blocks_cache[3]
@@ -261,17 +281,24 @@ def remove_first_block_and_reorder(blocks_cache: []):
 
 
 def main():
+    """Main function.
+
+    Continuously reads data from input stream, processes it using a
+    pretreined neural net in order to perform noise reduction and writes
+    the results to an output stream.
+    """
     block = init_block(PRO_BLOCK_SIZE)
     streamer = init_streamer()
     stream = start_stream(streamer)
     i = 0
     try:
-        # intialize blocks list for 4 blocks with zero-tensors of corresponding shapes (see net output)
+        # initialize blocks list for 4 blocks with zero-tensors of
+        # corresponding shapes (see net output)
         blocks_queue = [
             torch.zeros(hyperparameters.stft_length),
             torch.zeros(hyperparameters.stft_length),
             torch.zeros(hyperparameters.stft_length),
-            torch.zeros(hyperparameters.stft_length)
+            torch.zeros(hyperparameters.stft_length),
         ]
         while True:
             block = add_chunk(block, stream)
