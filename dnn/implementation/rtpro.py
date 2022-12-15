@@ -12,7 +12,7 @@ Topic         : Real-time audio processing module of the LSTM RNN Project
 
 from typing import Generator, List
 
-import hyperparameters
+import hyperparameters as hp
 import numpy as np
 import torch
 from scipy.signal import get_window
@@ -21,7 +21,7 @@ from torchaudio.io import StreamReader
 # Input device sampling frequency in Hz.
 INPUT_FS = 48000
 # Processing sampling frequency in Hz.
-PROCESSING_FS = 16000
+PROCESSING_FS = hp.fs
 # Downsampling factor.
 DSF = int(INPUT_FS / PROCESSING_FS)
 # Chunk size in ms.
@@ -223,7 +223,7 @@ def apply_window_on_block(block: torch.Tensor) -> torch.Tensor:
     window = torch.from_numpy(
         np.sqrt(
             get_window(
-                "hann", hyperparameters.stft_length, hyperparameters.fftbins
+                "hann", hp.stft_length, hp.fftbins
             )
         )
     )
@@ -295,10 +295,10 @@ def main():
         # initialize blocks list for 4 blocks with zero-tensors of
         # corresponding shapes (see net output)
         blocks_queue = [
-            torch.zeros(hyperparameters.stft_length),
-            torch.zeros(hyperparameters.stft_length),
-            torch.zeros(hyperparameters.stft_length),
-            torch.zeros(hyperparameters.stft_length),
+            torch.zeros(hp.stft_length),
+            torch.zeros(hp.stft_length),
+            torch.zeros(hp.stft_length),
+            torch.zeros(hp.stft_length),
         ]
         while True:
             block = add_chunk(block, stream)
