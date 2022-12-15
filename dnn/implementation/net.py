@@ -39,11 +39,14 @@ class LitNeuralNet(pl.LightningModule):
 
         The net architecture is as follows:
 
-        lstm1: [b, 2ch, f, t] -> [b*f, t, 2c]
-        lstm2: [b*f, t, hidden1 (*2 if bidir)] -> [b*f, t, hidden2 (*2 if bidir)]
-        ff:    [b*f, t, hidden2 (*2 if nidir)] -> [b*f, t, 2]
-        tanh:  -> [b*f, t, 2]
-        reshape to match output shape [b, 2, f, t]
+        [b, c, f, t]   -> transform -> [b*t, f, c]
+        [b*t, f, c]    -> lstm1     -> [b*t, f, hs1]
+        [b*t, f, hs1]  -> transform -> [b*f, t, hs1]
+        [b*f, t, hs1]  -> lstm2     -> [b*f, t, hs2]
+        [b*f, t, hs2]  -> transform -> [b, f, t, hs3]
+        [b, f, t, c]   -> dense     -> [b, f, t, c]
+        [b, t, f, hs3] -> transform -> [b, f, t, hs3]
+        [b, t, f, c]   -> tanh      -> [b, t, f, 1]
 
         input_size : int
             Size of the net's input layer.
@@ -70,8 +73,8 @@ class LitNeuralNet(pl.LightningModule):
             self.lstm2_out = self.hidden_size_2
             self.dense_in = 2 * self.hidden_size_2
         else:
-            self.lstm2_out = int(self.hidden_size_2 / 2)
-            self.dense_in = int(self.hidden_size_2 / 2)
+            self.lstm2_out = self.hidden_size_2
+            self.dense_in = self.hidden_size_2
 
         # LSTM Forward layer 1.
         self.lstm1 = nn.LSTM(
@@ -100,14 +103,14 @@ class LitNeuralNet(pl.LightningModule):
         x : torch.Tensor
             Input of the net.
         h_pre : torch.Tensor
-            Hidden state of previous iteration.
+            Previous hidden state. Default: None.
         c_pre : torch.Tensor
-            Cell state of previous iteration.
+            Previous cell state. Default: None.
 
         Returns
         -------
         tuple
-           Compressed mask, (current hidden state, current cell state).
+           Compressed mask, current hidden state, current cell state.
         """
         n_batch, n_ch, n_f, n_t = x.shape
         # Init hidden and cell state of time LSTM to zeros if not provided.
@@ -120,9 +123,9 @@ class LitNeuralNet(pl.LightningModule):
                                  self.hidden_size_2).to(hp.device)
             else:
                 h_pre = torch.randn(1, hidden_state_size,
-                                 int(self.hidden_size_2 / 2)).to(hp.device)
+                                 int(self.hidden_size_2)).to(hp.device)
                 c_pre = torch.randn(1, hidden_state_size,
-                                 int(self.hidden_size_2 / 2)).to(hp.device)
+                                 int(self.hidden_size_2)).to(hp.device)
 
         x = x.permute(0, 3, 2, 1)
         x = x.reshape(n_batch * n_t, n_f, n_ch)
@@ -178,11 +181,16 @@ class LitNeuralNet(pl.LightningModule):
             Input of the net.
         batch_idx : int
             Index of the current batch.
+        h_pre : torch.Tensor
+            Previous hidden state. Default: None.
+        c_pre : torch.Tensor
+            Previous cell state. Default: None.
 
         Returns
         -------
         tuple
-            Loss, clean, mix, prediction.
+            Loss, clean, mix, prediction, current hidden state, current cell
+            state).
         """
         torch.autograd.set_detect_anomaly(mode=hp.mode, check_nan=hp.check_nan)
 
@@ -253,6 +261,10 @@ class LitNeuralNet(pl.LightningModule):
             Input of the net.
         batch_idx : int
             Index of the current batch.
+        h_pre : torch.Tensor
+            Previous hidden state. Default: None.
+        c_pre : torch.Tensor
+            Previous cell state. Default: None.
 
         Returns
         -------
@@ -419,11 +431,15 @@ class LitNeuralNet(pl.LightningModule):
             Input of the net.
         batch_idx : int
             Index of the current batch.
+        h_pre : torch.Tensor
+            Previous hidden state. Default: None.
+        c_pre : torch.Tensor
+            Previous cell state. Default: None.
 
         Returns
         -------
         tuple
-            Prediction, clean, mix.
+            Prediction, clean, mix, current hidden state, current cell state).
         """
         _, clean_co, mix_co, prediction, h_new, c_new = self.common_step(batch,
                                                                          batch_idx,
