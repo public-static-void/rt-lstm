@@ -5,7 +5,7 @@
 Authors       : Vadim Titov, Henning Möllers
 Matr.-Nr.     : 6021356, ...
 Created       : December 14th, 2022
-Last modified : December 15th, 2022
+Last modified : December 20th, 2022
 Description   : Master's Project "Source Separation for Robot Control"
 Topic         : Real-time audio processing module of the LSTM RNN Project
 """
@@ -14,7 +14,9 @@ from typing import Generator, List
 
 import hyperparameters as hp
 import numpy as np
+import pytorch_lightning as pl
 import torch
+from net import LitNeuralNet
 from scipy.signal import get_window
 from torchaudio.io import StreamReader
 
@@ -186,7 +188,7 @@ def compute_FFT(block: torch.Tensor) -> torch.Tensor:
     torch.Tensor
         FFT of the given `block`.
     """
-    block_fft = torch.fft.fft(block)
+    block_fft = torch.fft.rfft(block)
     return block_fft
 
 
@@ -203,7 +205,7 @@ def compute_IFFT_from_block(block: torch.Tensor) -> torch.Tensor:
     torch.Tensor
         IFFT of the given `block`.
     """
-    block_ifft = torch.fft.ifft(block)
+    block_ifft = torch.fft.rifft(block)
     return block_ifft
 
 
@@ -221,11 +223,7 @@ def apply_window_on_block(block: torch.Tensor) -> torch.Tensor:
         Windowed tensor.
     """
     window = torch.from_numpy(
-        np.sqrt(
-            get_window(
-                "hann", hp.stft_length, hp.fftbins
-            )
-        )
+        np.sqrt(get_window("hann", hp.stft_length, hp.fftbins))
     )
     windowed_block = block * window
 
@@ -290,6 +288,15 @@ def main():
     block = init_block(PRO_BLOCK_SIZE)
     streamer = init_streamer()
     stream = start_stream(streamer)
+    # Make sure batch size is set to 1 in hyperparameters.
+    trained_model = LitNeuralNet.load_from_checkpoint(
+        checkpoint_path=hp.trained_model_path
+    )
+    trained_model.eval()
+    trained_model.freeze()
+    # Init hidden and cell state of time-dimension LSTM.
+    h_t = None
+    c_t = None
     i = 0
     try:
         # initialize blocks list for 4 blocks with zero-tensors of
@@ -302,23 +309,37 @@ def main():
         ]
         while True:
             block = add_chunk(block, stream)
-            print("input CHUNK:", i, block)
+            # print("input CHUNK:", i, block)
             windowed_new_block_before_FFT = apply_window_on_block(block)
             block_fft = compute_FFT(windowed_new_block_before_FFT)
-            print("BLOCK FFT:", i, block_fft)
-            # TODO net processing
-            net_output = block_fft
-
-            ifft_block = compute_IFFT_from_block(net_output)
-            windowed_new_block_after_net = apply_window_on_block(ifft_block)
-            blocks_queue = remove_first_block_and_reorder(blocks_queue)
-            blocks_queue[3] = windowed_new_block_after_net
-            overlapping_chunk = get_overlapping_chunk_sum_from_blocks(
-                blocks_queue
+            # print("BLOCK FFT:", i, block_fft)
+            # Simulate 3 channels.
+            fft_stack = torch.stack((block_fft, block_fft, block_fft), dim=0)
+            # print(fft_stack)
+            # print(fft_stack.shape)
+            # Split imaginary and real parts of complex fft.
+            fft_split = torch.cat(
+                (torch.real(fft_stack), torch.imag(fft_stack)), dim=0
             )
-            print(overlapping_chunk)
-            # output streaming
-            print(i)
+            # Add dummy batch and time dimensions.
+            net_input = fft_split[None, :, :, None]
+            # print(net_input.shape)
+            # Net processing:
+            net_output, _, _, h_t, c_t = trained_model.predict_rt(
+                batch=net_input, h_pre=h_t, c_pre=c_t
+            )
+            print(net_output)
+
+            # ifft_block = compute_IFFT_from_block(net_output)
+            # windowed_new_block_after_net = apply_window_on_block(ifft_block)
+            # blocks_queue = remove_first_block_and_reorder(blocks_queue)
+            # blocks_queue[3] = windowed_new_block_after_net
+            # overlapping_chunk = get_overlapping_chunk_sum_from_blocks(
+            #     blocks_queue
+            # )
+            # print(overlapping_chunk)
+            # # output streaming
+            # print(i)
             i += 1
     except:
         print("error/interrupt")

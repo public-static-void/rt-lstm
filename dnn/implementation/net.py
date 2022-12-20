@@ -5,7 +5,7 @@
 Authors       : Vadim Titov
 Matr.-Nr.     : 6021356
 Created       : June 23rd, 2022
-Last modified : December 15th, 2022
+Last modified : December 20th, 2022
 Description   : Master's Project "Source Separation for Robot Control"
 Topic         : Net module of the LSTM RNN Project
 """
@@ -96,8 +96,9 @@ class LitNeuralNet(pl.LightningModule):
         self.tanh = nn.Tanh()
         self.save_hyperparameters()
 
-    def forward(self, x: torch.Tensor, h_pre: torch.Tensor, c_pre:
-                torch.Tensor)-> tuple:
+    def forward(
+        self, x: torch.Tensor, h_pre: torch.Tensor, c_pre: torch.Tensor
+    ) -> tuple:
         """Implements the forward step functionality.
 
         x : torch.Tensor
@@ -117,23 +118,32 @@ class LitNeuralNet(pl.LightningModule):
         hidden_state_size = hp.batch_size * n_f
         if h_pre is None and c_pre is None:
             if self.t_bidirectional is True:
-                h_pre = torch.randn(2, hidden_state_size,
-                                 self.hidden_size_2).to(hp.device)
-                c_pre = torch.randn(2, hidden_state_size,
-                                 self.hidden_size_2).to(hp.device)
+                h_pre = torch.randn(
+                    2, hidden_state_size, self.hidden_size_2
+                ).to(hp.device)
+                c_pre = torch.randn(
+                    2, hidden_state_size, self.hidden_size_2
+                ).to(hp.device)
             else:
-                h_pre = torch.randn(1, hidden_state_size,
-                                 int(self.hidden_size_2)).to(hp.device)
-                c_pre = torch.randn(1, hidden_state_size,
-                                 int(self.hidden_size_2)).to(hp.device)
-
+                h_pre = torch.randn(
+                    1, hidden_state_size, int(self.hidden_size_2)
+                ).to(hp.device)
+                c_pre = torch.randn(
+                    1, hidden_state_size, int(self.hidden_size_2)
+                ).to(hp.device)
         x = x.permute(0, 3, 2, 1)
         x = x.reshape(n_batch * n_t, n_f, n_ch)
         x, _ = self.lstm1(x)
         x = x.reshape(n_batch, n_t, n_f, self.lstm2_in)
         x = x.permute(0, 2, 1, 3)
         x = x.reshape(n_batch * n_f, n_t, self.lstm2_in)
+        print(x)
+        print(h_pre.shape)
+        print(c_pre.shape)
+        print(x.shape)
+        # TODO: an dieser stelle gehts nicht weiter.
         x, (h_new, c_new) = self.lstm2(x, (h_pre, c_pre))
+        print(x)
         x = x.reshape(n_batch, n_f, n_t, self.dense_in)
         x = self.dense(x)
         x = x.permute(0, 3, 1, 2)
@@ -170,8 +180,13 @@ class LitNeuralNet(pl.LightningModule):
         # Adam optimizer.
         return torch.optim.Adam(self.parameters(), lr=self.learning_rate)
 
-    def common_step(self, batch: torch.Tensor, batch_idx: int,
-                    h_pre: torch.Tensor=None, c_pre: torch.Tensor=None) -> tuple:
+    def common_step(
+        self,
+        batch: torch.Tensor,
+        batch_idx: int,
+        h_pre: torch.Tensor = None,
+        c_pre: torch.Tensor = None,
+    ) -> tuple:
         """Helper function.
 
         Implements functionality used in training, validation and prediction
@@ -225,8 +240,13 @@ class LitNeuralNet(pl.LightningModule):
 
         return loss, clean_co, mix_co, prediction, h_out, c_out
 
-    def training_step(self, batch: torch.Tensor, batch_idx: int,
-                      h_pre: torch.Tensor=None, c_pre: torch.Tensor=None) -> float:
+    def training_step(
+        self,
+        batch: torch.Tensor,
+        batch_idx: int,
+        h_pre: torch.Tensor = None,
+        c_pre: torch.Tensor = None,
+    ) -> float:
         """Implements the training step functionality.
 
         batch : torch.Tensor
@@ -253,8 +273,13 @@ class LitNeuralNet(pl.LightningModule):
 
         return loss
 
-    def validation_step(self, batch: torch.Tensor, batch_idx: int, h_pre:
-                        torch.Tensor=None, c_pre: torch.Tensor=None) -> float:
+    def validation_step(
+        self,
+        batch: torch.Tensor,
+        batch_idx: int,
+        h_pre: torch.Tensor = None,
+        c_pre: torch.Tensor = None,
+    ) -> float:
         """Implements the validation step functionality.
 
         batch : torch.Tensor
@@ -272,10 +297,9 @@ class LitNeuralNet(pl.LightningModule):
             Training loss.
         """
         # Forward pass.
-        loss, clean_co, mix_co, prediction, _, _ = self.common_step(batch,
-                                                                    batch_idx,
-                                                                    h_pre,
-                                                                    c_pre)
+        loss, clean_co, mix_co, prediction, _, _ = self.common_step(
+            batch, batch_idx, h_pre, c_pre
+        )
 
         # Logging.
         self.log(
@@ -341,18 +365,14 @@ class LitNeuralNet(pl.LightningModule):
                 torch.maximum(
                     torch.square(torch.abs(clean_co[0])),
                     (10 ** (-15))
-                    * torch.ones_like(
-                        clean_co[0], dtype=torch.float32
-                    ),
+                    * torch.ones_like(clean_co[0], dtype=torch.float32),
                 )
             )
             pred_spec = 10 * torch.log10(
                 torch.maximum(
                     torch.square(torch.abs(prediction[0])),
                     (10 ** (-15))
-                    * torch.ones_like(
-                        prediction[0], dtype=torch.float32
-                    ),
+                    * torch.ones_like(prediction[0], dtype=torch.float32),
                 )
             )
 
@@ -423,8 +443,13 @@ class LitNeuralNet(pl.LightningModule):
 
         return loss
 
-    def predict_step(self, batch: torch.Tensor, batch_idx: int, h_pre:
-                     torch.Tensor=None, c_pre: torch.Tensor=None) -> tuple:
+    def predict_step(
+        self,
+        batch: torch.Tensor,
+        batch_idx: int,
+        h_pre: torch.Tensor = None,
+        c_pre: torch.Tensor = None,
+    ) -> tuple:
         """Implements the prediction step functionality.
 
         batch : torch.Tensor
@@ -441,10 +466,9 @@ class LitNeuralNet(pl.LightningModule):
         tuple
             Prediction, clean, mix, current hidden state, current cell state).
         """
-        _, clean_co, mix_co, prediction, h_new, c_new = self.common_step(batch,
-                                                                         batch_idx,
-                                                                         h_pre,
-                                                                         c_pre)
+        _, clean_co, mix_co, prediction, h_new, c_new = self.common_step(
+            batch, batch_idx, h_pre, c_pre
+        )
 
         # Generate sound files for mix, clean and prediction.
         mix_istft = torch.istft(
@@ -464,28 +488,59 @@ class LitNeuralNet(pl.LightningModule):
         )
 
         sf.write(
-            hp.OUT_DIR
-            + "mix-"
-            + str(batch_idx)
-            + ".wav",
+            hp.OUT_DIR + "mix-" + str(batch_idx) + ".wav",
             mix_istft.cpu(),
             hp.fs,
         )
         sf.write(
-            hp.OUT_DIR
-            + "clean-"
-            + str(batch_idx)
-            + ".wav",
+            hp.OUT_DIR + "clean-" + str(batch_idx) + ".wav",
             clean_istft.cpu(),
             hp.fs,
         )
         sf.write(
-            hp.OUT_DIR
-            + "pred-"
-            + str(batch_idx)
-            + ".wav",
+            hp.OUT_DIR + "pred-" + str(batch_idx) + ".wav",
             pred_istft.cpu(),
             hp.fs,
         )
 
         return prediction, clean_co, mix_co, h_new, c_new
+
+    def predict_rt(
+        self,
+        batch: torch.Tensor,
+        h_pre: torch.Tensor = None,
+        c_pre: torch.Tensor = None,
+    ) -> tuple:
+        """Implements the prediction step functionality.
+
+        batch : torch.Tensor
+            Input of the net.
+        batch_idx : int
+            Index of the current batch.
+        h_pre : torch.Tensor
+            Previous hidden state. Default: None.
+        c_pre : torch.Tensor
+            Previous cell state. Default: None.
+
+        Returns
+        -------
+        tuple
+            Prediction, mix, current hidden state, current cell state).
+        """
+
+        # Unpack and cast input data for further processing.
+        mix = batch
+        mix = mix.float()
+
+        # Compute mask.
+        comp_mask, h_new, c_new = self(mix, h_pre, c_pre)
+        decomp_mask = -torch.log((hp.K - comp_mask) / (hp.K + comp_mask))
+        mix_co = torch.complex(mix[:, 0], mix[:, 3])
+        mask_co = torch.complex(decomp_mask[:, 0], decomp_mask[:, 1])
+        h_out = h_new.detach()
+        c_out = c_new.detach()
+
+        # Apply mask to mixture (noisy) input signal.
+        prediction = mask_co * mix_co
+
+        return prediction, mix, h_out, c_out
