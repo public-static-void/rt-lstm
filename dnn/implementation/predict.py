@@ -23,10 +23,9 @@ def main():
     """
     # Load pretrained net from checkpoint.
     trained_model = LitNeuralNet.load_from_checkpoint(
-        # TODO: Automatically load best checkpoint? At the moment it's
-        # done manually by explicitly passing path and filename.
-        checkpoint_path=hp.CHECKPOINT_DIR
-        + hp.checkpoint_name
+        # checkpoint_path=hp.CHECKPOINT_DIR
+        # + hp.checkpoint_name
+        checkpoint_path=hp.trained_model_path
     )
     trained_model.eval()
     trained_model.freeze()

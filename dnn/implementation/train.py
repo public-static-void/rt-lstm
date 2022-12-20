@@ -24,7 +24,7 @@ def main():
     """
     # Initialize trainer.
     trainer = pl.Trainer(
-        default_root_dir=hp.CHECKPOINT_DIR,
+        # default_root_dir=hp.CHECKPOINT_DIR,
         fast_dev_run=hp.is_test_run,
         accelerator=hp.device,
         devices=hp.num_devices,
