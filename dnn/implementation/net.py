@@ -142,7 +142,9 @@ class LitNeuralNet(pl.LightningModule):
         print(c_pre.shape)
         print(x.shape)
         # TODO: an dieser stelle gehts nicht weiter.
-        x, (h_new, c_new) = self.lstm2(x, (h_pre, c_pre))
+        x, (h_new, c_new) = self.lstm2(
+            x, (h_pre.to("cpu"), c_pre.to("cpu"))
+        )
         print(x)
         x = x.reshape(n_batch, n_f, n_t, self.dense_in)
         x = self.dense(x)

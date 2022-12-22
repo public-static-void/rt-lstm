@@ -10,6 +10,8 @@ Description   : Master's Project "Source Separation for Robot Control"
 Topic         : Real-time audio processing module of the LSTM RNN Project
 """
 
+import sys
+import traceback
 from typing import Generator, List
 
 import hyperparameters as hp
@@ -18,7 +20,8 @@ import pytorch_lightning as pl
 import torch
 from net import LitNeuralNet
 from scipy.signal import get_window
-from torchaudio.io import StreamReader
+from torchaudio.io import StreamReader, StreamWriter
+from torchaudio.transforms import Resample
 
 # Input device sampling frequency in Hz.
 INPUT_FS = 48000
@@ -39,11 +42,13 @@ PRO_CHUNK_SIZE = int(PROCESSING_FS * CHUNK_SIZE_MS / 1000)
 # Processing block size in samples.
 PRO_BLOCK_SIZE = int(PROCESSING_FS * BLOCK_SIZE_MS / 1000)
 # Hardware source device identifier.
-SRC = "hw:1"
+SRC = "hw:1,0"
 FORMAT = "alsa"
+DST = "hw:1,0"  # TODO: ?
+NUM_CHANNELS = 1
 
 
-def init_streamer() -> StreamReader:
+def init_stream_reader() -> StreamReader:
     """Helper function.
 
     Initializes and returns an instance of `torchaudio.io.StreamReader`.
@@ -52,8 +57,21 @@ def init_streamer() -> StreamReader:
     -------
         Initialized instance of `torchaudio.io.StreamReader`.
     """
-    streamer = StreamReader(src=SRC, format=FORMAT)
-    return streamer
+    stream_reader = StreamReader(src=SRC, format=FORMAT)
+    return stream_reader
+
+
+def init_stream_writer() -> StreamWriter:
+    """Helper function.
+
+    Initializes and returns an instance of `torchaudio.io.StreamWriter`.
+
+    Returns
+    -------
+        Initialized instance of `torchaudio.io.StreamWriter`.
+    """
+    stream_writer = StreamWriter(dst=DST, format=FORMAT)
+    return stream_writer
 
 
 def start_stream(streamer: StreamReader) -> Generator[bytes, None, None]:
@@ -205,7 +223,7 @@ def compute_IFFT_from_block(block: torch.Tensor) -> torch.Tensor:
     torch.Tensor
         IFFT of the given `block`.
     """
-    block_ifft = torch.fft.rifft(block)
+    block_ifft = torch.fft.irfft(block)
     return block_ifft
 
 
@@ -285,9 +303,12 @@ def main():
     pretreined neural net in order to perform noise reduction and writes
     the results to an output stream.
     """
+    upsampler = Resample(PROCESSING_FS, INPUT_FS, dtype=torch.double)
     block = init_block(PRO_BLOCK_SIZE)
-    streamer = init_streamer()
-    stream = start_stream(streamer)
+    stream_reader = init_stream_reader()
+    stream = start_stream(stream_reader)
+    stream_writer = init_stream_writer()
+    stream_writer.add_audio_stream(INPUT_FS, NUM_CHANNELS, format="s16")
     # Make sure batch size is set to 1 in hyperparameters.
     trained_model = LitNeuralNet.load_from_checkpoint(
         checkpoint_path=hp.trained_model_path
@@ -325,25 +346,35 @@ def main():
             net_input = fft_split[None, :, :, None]
             # print(net_input.shape)
             # Net processing:
-            net_output, _, _, h_t, c_t = trained_model.predict_rt(
+            net_output, _, h_t, c_t = trained_model.predict_rt(
                 batch=net_input, h_pre=h_t, c_pre=c_t
             )
-            print(net_output)
+            # print(net_output)
 
-            # ifft_block = compute_IFFT_from_block(net_output)
-            # windowed_new_block_after_net = apply_window_on_block(ifft_block)
-            # blocks_queue = remove_first_block_and_reorder(blocks_queue)
-            # blocks_queue[3] = windowed_new_block_after_net
-            # overlapping_chunk = get_overlapping_chunk_sum_from_blocks(
-            #     blocks_queue
-            # )
-            # print(overlapping_chunk)
-            # # output streaming
-            # print(i)
+            net_output = net_output[0, :, 0]
+            ifft_block = compute_IFFT_from_block(net_output)
+            windowed_new_block_after_net = apply_window_on_block(ifft_block)
+            blocks_queue = remove_first_block_and_reorder(blocks_queue)
+            blocks_queue[3] = windowed_new_block_after_net
+            overlapping_chunk = get_overlapping_chunk_sum_from_blocks(
+                blocks_queue
+            )
+            print(overlapping_chunk)
+            # output streaming
+            resampled_chunk = upsampler(overlapping_chunk)
+            resampled_chunk.to(dtype=torch.int16)
+
+            print(resampled_chunk)
+            with stream_writer.open(
+            ) as write_stream:
+                write_stream.write_audio_chunk(0, resampled_chunk)
+
+            print(i)
             i += 1
-    except:
-        print("error/interrupt")
-        stop_stream(streamer, streamer.default_audio_stream)
+    except Exception as e:
+        print(traceback.format_exc())
+        print("error/interrupt", e)
+        stop_stream(stream_reader, stream_reader.default_audio_stream)
         return
 
 
