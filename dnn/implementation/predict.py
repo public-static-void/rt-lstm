@@ -46,7 +46,7 @@ def main():
     # Perform prediction.
     predictions = trainer.predict(trained_model, dataloaders.test_dataloader(),
                                   None, None)
-    # performance.__calculate_pesq__()
+    performance.__calculate_pesq__()
 
 
 if __name__ == "__main__":

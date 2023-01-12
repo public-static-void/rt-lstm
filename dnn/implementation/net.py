@@ -18,6 +18,7 @@ import torch.nn as nn
 import torchaudio
 from matplotlib import pyplot as plt
 from torchmetrics import ScaleInvariantSignalDistortionRatio as SI_SDR
+import json
 
 
 class LitNeuralNet(pl.LightningModule):
@@ -468,6 +469,12 @@ class LitNeuralNet(pl.LightningModule):
         tuple
             Prediction, clean, mix, current hidden state, current cell state).
         """
+
+        meta_data = batch[-1]
+        batch = batch[:-1]
+
+
+
         _, clean_co, mix_co, prediction, h_new, c_new = self.common_step(
             batch, batch_idx, h_pre, c_pre
         )
@@ -490,20 +497,34 @@ class LitNeuralNet(pl.LightningModule):
         )
 
         sf.write(
-            hp.OUT_DIR + "mix-" + str(batch_idx) + ".wav",
+            hp.OUT_DIR + "mix-" + str(meta_data['data_index'][0]) + ".wav",
             mix_istft.cpu(),
             hp.fs,
         )
         sf.write(
-            hp.OUT_DIR + "clean-" + str(batch_idx) + ".wav",
+            hp.OUT_DIR + "clean-" + str(meta_data['data_index'][0]) + ".wav",
             clean_istft.cpu(),
             hp.fs,
         )
         sf.write(
-            hp.OUT_DIR + "pred-" + str(batch_idx) + ".wav",
+            hp.OUT_DIR + "pred-" + str(meta_data['data_index'][0]) + ".wav",
             pred_istft.cpu(),
             hp.fs,
         )
+
+        meta_data["SNR"] = meta_data["SNR"].item()
+        meta_data["reverberation_rate"] = meta_data["reverberation_rate"].item()
+        meta_data["min_distance_to_noise"] = meta_data["min_distance_to_noise"].item()
+
+
+        # Serializing json
+        json_object = json.dumps(meta_data)
+
+        # Writing to sample.json
+        with open("out/meta_"+meta_data["data_index"][0], "w") as outfile:
+            outfile.write(json_object)
+
+
 
         return prediction, clean_co, mix_co, h_new, c_new
 

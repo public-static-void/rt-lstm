@@ -9,6 +9,7 @@ from matplotlib.pyplot import axes
 from pandas import cut
 from scipy.signal import get_window, stft
 from torch.utils.data import Dataset
+import json
 
 """This Dataset class is used to get single files from certain directories.
 
@@ -25,20 +26,21 @@ class CustomDataset(Dataset):
 
         print(self.type)
         if self.type == 'training':
-            # self.data_dir = '/export/scratch/9hmoelle/generatedDatasets/Training'
-            self.data_dir = 'soundfiles/generatedDatasets/Training'
+            self.data_dir = '/export/scratch/9hmoelle/generatedDatasets/Training'
+            #self.data_dir = 'soundfiles/generatedDatasets/Training'
 
         else:
             if self.type == 'validation':
-                # self.data_dir = '/export/scratch/9hmoelle/generatedDatasets/Validation'
-                self.data_dir = 'soundfiles/generatedDatasets/Validation'
+                self.data_dir = '/export/scratch/9hmoelle/generatedDatasets/Validation'
+                #self.data_dir = 'soundfiles/generatedDatasets/Validation'
             else:
-                # self.data_dir = '/export/scratch/9hmoelle/generatedDatasets/Test'
-                self.data_dir = 'soundfiles/generatedDatasets/Test'
+                self.data_dir = '/export/scratch/9hmoelle/generatedDatasets/Test'
+                #self.data_dir = 'soundfiles/generatedDatasets/Test'
 
 
         self.data_clean = np.sort(np.array(glob.glob(self.data_dir+"/*clean.wav")))
         self.data_noise = np.sort(np.array(glob.glob(self.data_dir+"/*noise.wav")))
+        self.data_meta = np.sort(np.array(glob.glob(self.data_dir+"/*meta.json")))
         self.sample_rate = 16000
 
         """Defines the number of files in the dataset
@@ -86,6 +88,9 @@ class CustomDataset(Dataset):
 
         window1 = torch.from_numpy(np.sqrt(get_window('hann', self.stft_length, fftbins=True)))
 
+        if self.type == 'test':
+            data_index = self.data_clean[index].split("Test/")[1][:-10]
+
         #Test if Tensor is empty
         clean_read,fs = soundfile.read(self.data_clean[index])
         noise_read,fs = soundfile.read(self.data_noise[index])
@@ -96,6 +101,12 @@ class CustomDataset(Dataset):
                 index=0
             clean_read,fs = soundfile.read(self.data_clean[index])
             noise_read,fs = soundfile.read(self.data_noise[index])
+
+        #Read Meta Data
+        meta_file = open(self.data_meta[index])
+        meta_json = json.loads(meta_file.read())
+        reverberation_rate = meta_json["reverberationRate"]
+        min_distance_to_noise = meta_json["minimalNoiseDistance"]
 
 
         #To make comparing validation graphs possible (and for bug finding). If this if-clause is true, we always choose the same cut from each soundfile in each epoche.
@@ -172,8 +183,13 @@ class CustomDataset(Dataset):
         #print(noise_split_concatenate.shape)
         #print(mixture_split_concatenate.shape)
 
-        return clean_split_concatenate, noise_split_concatenate, mixture_split_concatenate#, clean_name, noise_name, mixture_name, SNR
+        if self.type =='test':
+            meta_data = {'data_index': data_index, 'SNR':SNR, 'reverberation_rate':reverberation_rate, 'min_distance_to_noise': min_distance_to_noise}
+            return clean_split_concatenate, noise_split_concatenate, mixture_split_concatenate, meta_data
+        else:
+            return clean_split_concatenate, noise_split_concatenate, mixture_split_concatenate
 
-#Dataset = CustomDataset('validation')
+
+#Dataset = CustomDataset('test')
 
 #Dataset.__getitem__(7)
