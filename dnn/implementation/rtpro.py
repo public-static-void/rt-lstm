@@ -4,8 +4,8 @@
 """
 Authors       : Vadim Titov, Henning Möllers
 Matr.-Nr.     : 6021356, ...
-Created       : January 6th, 2022
-Last modified : January 6th, 2022
+Created       : January 6th, 2023
+Last modified : January 6th, 2023
 Description   : Master's Project "Source Separation for Robot Control"
 Topic         : Real-time audio processing module of the LSTM RNN Project
 """
@@ -24,7 +24,8 @@ from net import LitNeuralNet
 from scipy.signal import get_window
 from torchaudio.transforms import Resample
 
-# NOTE: Set qjackctl to 48000 fs, 384 frames and 2 buffer periods.
+# NOTE: Set qjackctl to 48000 fs, 384 frames and 4 buffer periods.
+# NOTE: Make sure batch size is set to 1 in hyperparameters.
 
 # Processing sampling frequency in Hz.
 PROCESSING_FS = hp.fs  # 16000
@@ -51,7 +52,6 @@ blocks_queue = [
 WINDOW = torch.from_numpy(
     np.sqrt(get_window("hann", hp.stft_length, hp.fftbins))
 )
-# Make sure batch size is set to 1 in hyperparameters.
 trained_model = LitNeuralNet.load_from_checkpoint(
     checkpoint_path=hp.trained_model_path
 )
@@ -221,7 +221,6 @@ def main():
         global h_t
         global c_t
 
-        assert len(client.inports) == len(client.outports)
         assert frames == client.blocksize
 
         # Read stream from microphone(s).
