@@ -179,7 +179,6 @@ def get_overlapping_chunk_sum_from_blocks(blocks_queue: List) -> torch.Tensor:
         + block3[PRO_CHUNK_SIZE * 2: PRO_CHUNK_SIZE * 3]
         + block4[PRO_CHUNK_SIZE * 3: PRO_CHUNK_SIZE * 4]
     )
-    # Rescale overlapping part.
     return chunk_sum
 
 
@@ -254,13 +253,13 @@ def main():
         # Perform signal processing magic.
         # Read chunk from stream and resample it to match processing fs.
         chunk = torch.from_numpy(in_channels[1])
-        DEBUG_IN_BUFFER[I * IN_CHUNK_SIZE: (I + 1) * IN_CHUNK_SIZE] = chunk
-        ds_chunk = downsample(chunk)
-        # chunk, filter_states_lp_down_sample = signal.lfilter(
-        #     b, a, chunk, axis=-1, zi=filter_states_lp_down_sample
-        # )  # [D, T]
-        # ds_chunk = chunk[::ds_factor]  # [D, T']
-        # ds_chunk = torch.from_numpy(ds_chunk)
+        # DEBUG_IN_BUFFER[I * IN_CHUNK_SIZE: (I + 1) * IN_CHUNK_SIZE] = chunk
+        # ds_chunk = downsample(chunk)
+        chunk, filter_states_lp_down_sample = signal.lfilter(
+            b, a, chunk, axis=-1, zi=filter_states_lp_down_sample
+        )  # [D, T]
+        ds_chunk = chunk[::ds_factor]  # [D, T']
+        ds_chunk = torch.from_numpy(ds_chunk)
         # Add chunk to block.
         block = add_chunk(block, ds_chunk)
         windowed_new_block_before_FFT = apply_window_on_block(block)
@@ -277,43 +276,51 @@ def main():
         net_output, _, h_t, c_t = trained_model.predict_rt(
             batch=net_input, h_pre=h_t, c_pre=c_t
         )
+        # net_output = block_fft
         net_output = net_output[0, :, 0]
         ifft_block = compute_IFFT_from_block(net_output)
         windowed_new_block_after_net = apply_window_on_block(ifft_block)
         blocks_queue = remove_first_block_and_reorder(blocks_queue)
         blocks_queue[3] = windowed_new_block_after_net
         overlapping_chunk = get_overlapping_chunk_sum_from_blocks(blocks_queue)
-        print(overlapping_chunk)
-        # Output streaming.
-        resampled_chunk = upsample(overlapping_chunk)
-        resampled_chunk.to(dtype=torch.int16)
-        output_buffer = resampled_chunk
+        # print(overlapping_chunk)
+        # # Output streaming.
+        # resampled_chunk = upsample(overlapping_chunk)
+        # resampled_chunk = upsample(ds_chunk.to(dtype=torch.double))
+        # resampled_chunk.to(dtype=torch.int16)
+        # output_buffer = resampled_chunk
         #
-        # output_buffer = torch.zeros_like(torch.from_numpy(chunk))
+        output_buffer = torch.zeros_like(torch.from_numpy(chunk))
         # output_buffer[::ds_factor] = overlapping_chunk
-        # output_buffer, filter_states_lp_up_sample = signal.lfilter(
-        #     ds_factor * b,
-        #     a,
-        #     output_buffer,
-        #     axis=-1,
-        #     zi=filter_states_lp_up_sample,
-        # )
-        # output_buffer = torch.from_numpy(output_buffer)
-        print(output_buffer)
+        output_buffer[::ds_factor] = ds_chunk
+        output_buffer, filter_states_lp_up_sample = signal.lfilter(
+            ds_factor * b,
+            a,
+            output_buffer,
+            axis=-1,
+            zi=filter_states_lp_up_sample,
+        )
+        output_buffer = torch.from_numpy(output_buffer)
+        # print(output_buffer)
+        # output_buffer = chunk
 
-        DEBUG_OUT_BUFFER[
-            I * ds_chunk.shape[0]: (I + 1) * ds_chunk.shape[0]
-        ] = ds_chunk
-        I = I + 1
-        print(PROCESSING_FS)
-        print(client.samplerate)
-        print(IN_CHUNK_SIZE)
-        print(chunk.shape)
-        print(output_buffer.shape)
-        if I * IN_CHUNK_SIZE >= 9 * 48000:
-            plt.plot(DEBUG_IN_BUFFER, "r")
-            plt.plot(DEBUG_OUT_BUFFER, "b")
-            plt.show()
+        # DEBUG_OUT_BUFFER[
+        #     I * ds_chunk.shape[0]: (I + 1) * ds_chunk.shape[0]
+        # ] = ds_chunk
+        # I = I + 1
+        # print(PROCESSING_FS)
+        # print(client.samplerate)
+        # print(IN_CHUNK_SIZE)
+        # print(chunk.shape)
+        # print(output_buffer.shape)
+        # if I * IN_CHUNK_SIZE >= 9 * 48000:
+        #     with open('test.npy', 'wb') as f:
+        #         np.save(f, DEBUG_IN_BUFFER)
+        #         np.save(f, DEBUG_OUT_BUFFER)
+
+            # plt.plot(DEBUG_IN_BUFFER, "r")
+            # plt.plot(DEBUG_OUT_BUFFER, "b")
+            # plt.show()
             # sys.exit("DEBUG")
 
         # Write stream to speaker(s).
