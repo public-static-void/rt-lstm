@@ -232,35 +232,37 @@ def main():
         # Perform signal processing magic.
         # Read chunk from stream and resample it to match processing fs.
         chunk = torch.from_numpy(in_channels[1])
-        chunk = downsample(chunk)
-        # Add chunk to block.
-        block = add_chunk(block, chunk)
-        windowed_new_block_before_FFT = apply_window_on_block(block)
-        block_fft = compute_FFT(windowed_new_block_before_FFT)
-        # Simulate 3 channels.
-        fft_stack = torch.stack((block_fft, block_fft, block_fft), dim=0)
-        # Split imaginary and real parts of complex fft.
-        fft_split = torch.cat(
-            (torch.real(fft_stack), torch.imag(fft_stack)), dim=0
-        )
-        # Add dummy batch and time dimensions.
-        net_input = fft_split[None, :, :, None]
-        # Net processing:
-        net_output, _, h_t, c_t = trained_model.predict_rt(
-            batch=net_input, h_pre=h_t, c_pre=c_t
-        )
-        net_output = net_output[0, :, 0]
-        ifft_block = compute_IFFT_from_block(net_output)
-        windowed_new_block_after_net = apply_window_on_block(ifft_block)
-        blocks_queue = remove_first_block_and_reorder(blocks_queue)
-        blocks_queue[3] = windowed_new_block_after_net
-        overlapping_chunk = get_overlapping_chunk_sum_from_blocks(blocks_queue)
-        print(overlapping_chunk)
-        # Output streaming.
-        resampled_chunk = upsample(overlapping_chunk)
-        resampled_chunk.to(dtype=torch.int16)
-        output_buffer = resampled_chunk
-        print(output_buffer)
+        # chunk = downsample(chunk)
+        # # Add chunk to block.
+        # block = add_chunk(block, chunk)
+        # windowed_new_block_before_FFT = apply_window_on_block(block)
+        # block_fft = compute_FFT(windowed_new_block_before_FFT)
+        # # Simulate 3 channels.
+        # fft_stack = torch.stack((block_fft, block_fft, block_fft), dim=0)
+        # # Split imaginary and real parts of complex fft.
+        # fft_split = torch.cat(
+        #     (torch.real(fft_stack), torch.imag(fft_stack)), dim=0
+        # )
+        # # Add dummy batch and time dimensions.
+        # net_input = fft_split[None, :, :, None]
+        # # Net processing:
+        # net_output, _, h_t, c_t = trained_model.predict_rt(
+        #     batch=net_input, h_pre=h_t, c_pre=c_t
+        # )
+        # net_output = net_output[0, :, 0]
+        # ifft_block = compute_IFFT_from_block(net_output)
+        # windowed_new_block_after_net = apply_window_on_block(ifft_block)
+        # blocks_queue = remove_first_block_and_reorder(blocks_queue)
+        # blocks_queue[3] = windowed_new_block_after_net
+        # overlapping_chunk = get_overlapping_chunk_sum_from_blocks(blocks_queue)
+        # print(overlapping_chunk)
+        # # Output streaming.
+        # resampled_chunk = upsample(overlapping_chunk)
+        # resampled_chunk.to(dtype=torch.int16)
+        # output_buffer = resampled_chunk
+        # print(output_buffer)
+
+        output_buffer = chunk
 
         # Write stream to speaker(s).
         for oc in range(0, NUM_OUT_CHANNELS):
