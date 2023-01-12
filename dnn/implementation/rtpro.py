@@ -20,12 +20,24 @@ import hyperparameters as hp
 import jack
 import numpy as np
 import torch
+from dsp_utils import (
+    get_butter_coeffs,
+    get_periodic_hann,
+    get_windowed_irfft,
+    get_windowed_rfft,
+)
+from matplotlib import pyplot as plt
 from net import LitNeuralNet
+from scipy import signal
 from scipy.signal import get_window
 from torchaudio.transforms import Resample
 
 # NOTE: Set qjackctl to 48000 fs, 384 frames and 4 buffer periods.
 # NOTE: Make sure batch size is set to 1 in hyperparameters.
+
+I = 0
+DEBUG_IN_BUFFER = torch.zeros(30 * 48000)
+DEBUG_OUT_BUFFER = torch.zeros(30 * 16000)
 
 # Processing sampling frequency in Hz.
 PROCESSING_FS = hp.fs  # 16000
@@ -33,6 +45,8 @@ PROCESSING_FS = hp.fs  # 16000
 CHUNK_SIZE_MS = 8
 # Block size in ms.
 BLOCK_SIZE_MS = 32
+# Processing chunk size in samples.
+IN_CHUNK_SIZE = int(48000 * CHUNK_SIZE_MS / 1000)
 # Processing chunk size in samples.
 PRO_CHUNK_SIZE = int(PROCESSING_FS * CHUNK_SIZE_MS / 1000)
 # Processing block size in samples.
@@ -60,6 +74,11 @@ trained_model.freeze()
 # Init hidden and cell state of time-dimension LSTM.
 h_t = None
 c_t = None
+LP_ORDER = 16
+ds_factor = int(48000 / PROCESSING_FS)
+b, a = get_butter_coeffs(ds_factor, LP_ORDER)
+filter_states_lp_down_sample = np.zeros(LP_ORDER)
+filter_states_lp_up_sample = np.zeros(LP_ORDER)
 
 
 def add_chunk(block: torch.Tensor, chunk: torch.Tensor) -> torch.Tensor:
@@ -220,6 +239,9 @@ def main():
         global blocks_queue
         global h_t
         global c_t
+        global I
+        global filter_states_lp_down_sample
+        global filter_states_lp_up_sample
 
         assert frames == client.blocksize
 
@@ -232,9 +254,15 @@ def main():
         # Perform signal processing magic.
         # Read chunk from stream and resample it to match processing fs.
         chunk = torch.from_numpy(in_channels[1])
-        chunk = downsample(chunk)
+        DEBUG_IN_BUFFER[I * IN_CHUNK_SIZE: (I + 1) * IN_CHUNK_SIZE] = chunk
+        ds_chunk = downsample(chunk)
+        # chunk, filter_states_lp_down_sample = signal.lfilter(
+        #     b, a, chunk, axis=-1, zi=filter_states_lp_down_sample
+        # )  # [D, T]
+        # ds_chunk = chunk[::ds_factor]  # [D, T']
+        # ds_chunk = torch.from_numpy(ds_chunk)
         # Add chunk to block.
-        block = add_chunk(block, chunk)
+        block = add_chunk(block, ds_chunk)
         windowed_new_block_before_FFT = apply_window_on_block(block)
         block_fft = compute_FFT(windowed_new_block_before_FFT)
         # Simulate 3 channels.
@@ -260,7 +288,33 @@ def main():
         resampled_chunk = upsample(overlapping_chunk)
         resampled_chunk.to(dtype=torch.int16)
         output_buffer = resampled_chunk
+        #
+        # output_buffer = torch.zeros_like(torch.from_numpy(chunk))
+        # output_buffer[::ds_factor] = overlapping_chunk
+        # output_buffer, filter_states_lp_up_sample = signal.lfilter(
+        #     ds_factor * b,
+        #     a,
+        #     output_buffer,
+        #     axis=-1,
+        #     zi=filter_states_lp_up_sample,
+        # )
+        # output_buffer = torch.from_numpy(output_buffer)
         print(output_buffer)
+
+        DEBUG_OUT_BUFFER[
+            I * ds_chunk.shape[0]: (I + 1) * ds_chunk.shape[0]
+        ] = ds_chunk
+        I = I + 1
+        print(PROCESSING_FS)
+        print(client.samplerate)
+        print(IN_CHUNK_SIZE)
+        print(chunk.shape)
+        print(output_buffer.shape)
+        if I * IN_CHUNK_SIZE >= 9 * 48000:
+            plt.plot(DEBUG_IN_BUFFER, "r")
+            plt.plot(DEBUG_OUT_BUFFER, "b")
+            plt.show()
+            # sys.exit("DEBUG")
 
         # Write stream to speaker(s).
         for oc in range(0, NUM_OUT_CHANNELS):
