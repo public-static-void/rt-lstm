@@ -5,7 +5,7 @@
 Authors       : Vadim Titov, Henning Möllers
 Matr.-Nr.     : 6021356, ...
 Created       : January 6th, 2023
-Last modified : January 6th, 2023
+Last modified : January 18th, 2023
 Description   : Master's Project "Source Separation for Robot Control"
 Topic         : Real-time audio processing module of the LSTM RNN Project
 """
@@ -20,24 +20,16 @@ import hyperparameters as hp
 import jack
 import numpy as np
 import torch
-from dsp_utils import (
-    get_butter_coeffs,
-    get_periodic_hann,
-    get_windowed_irfft,
-    get_windowed_rfft,
-)
-from matplotlib import pyplot as plt
+from dsp_utils import get_butter_coeffs
 from net import LitNeuralNet
 from scipy import signal
 from scipy.signal import get_window
-from torchaudio.transforms import Resample
 
 # NOTE: Set qjackctl to 48000 fs, 384 frames and 4 buffer periods.
 # NOTE: Make sure batch size is set to 1 in hyperparameters.
 
-I = 0
-DEBUG_IN_BUFFER = torch.zeros(30 * 48000)
-DEBUG_OUT_BUFFER = torch.zeros(30 * 16000)
+# Decouples net from processing pipeline if set to True.
+DEBUG = False
 
 # Processing sampling frequency in Hz.
 PROCESSING_FS = hp.fs  # 16000
@@ -46,14 +38,12 @@ CHUNK_SIZE_MS = 8
 # Block size in ms.
 BLOCK_SIZE_MS = 32
 # Processing chunk size in samples.
-IN_CHUNK_SIZE = int(48000 * CHUNK_SIZE_MS / 1000)
-# Processing chunk size in samples.
 PRO_CHUNK_SIZE = int(PROCESSING_FS * CHUNK_SIZE_MS / 1000)
 # Processing block size in samples.
 PRO_BLOCK_SIZE = int(PROCESSING_FS * BLOCK_SIZE_MS / 1000)
 
 NUM_IN_CHANNELS = 2
-NUM_OUT_CHANNELS = 1
+NUM_OUT_CHANNELS = 2
 
 # Init empty block.
 block = torch.zeros(PRO_BLOCK_SIZE)
@@ -202,6 +192,122 @@ def remove_first_block_and_reorder(blocks_cache: List) -> List:
     return blocks_cache
 
 
+def pre_processing(
+    chunk: torch.Tensor,
+    block: torch.Tensor,
+    filter_states_lp_down_sample: np.ndarray,
+) -> tuple:
+    """Helper function.
+
+    Performs preprocessing.
+
+    Parameters
+    ----------
+    chunk : torch.Tensor
+
+    block : torch.Tensor
+
+    filter_states_lp_down_sample : np.ndarray
+
+
+    Returns
+    -------
+    tuple
+
+    """
+    chunk, filter_states_lp_down_sample = signal.lfilter(
+        b, a, chunk, axis=-1, zi=filter_states_lp_down_sample
+    )  # [D, T]
+    ds_chunk = chunk[::ds_factor]  # [D, T']
+    ds_chunk = torch.from_numpy(ds_chunk)
+
+    # Add chunk to block.
+    block = add_chunk(block, ds_chunk)
+    windowed_new_block_before_FFT = apply_window_on_block(block)
+    block_fft = compute_FFT(windowed_new_block_before_FFT)
+    return block_fft, block, filter_states_lp_down_sample
+
+
+def net_processing(
+    fft_stack: torch.Tensor, h_t: torch.Tensor, c_t: torch.Tensor
+) -> tuple:
+    """Helper function.
+
+    Performs net processing.
+
+    Parameters
+    ----------
+    fft_stack : torch.Tensor
+
+    h_t : torch.Tensor
+
+    c_t : torch.Tensor
+
+
+    Returns
+    -------
+    tuple
+        net_output, h_t, c_t
+
+    """
+    # Split imaginary and real parts of complex fft.
+    fft_split = torch.cat(
+        (torch.real(fft_stack), torch.imag(fft_stack)), dim=0)
+    # Add dummy batch and time dimensions.
+    net_input = fft_split[None, :, :, None]
+    # Net processing:
+    net_output, _, h_t, c_t = trained_model.predict_rt(
+        batch=net_input, h_pre=h_t, c_pre=c_t
+    )
+    net_output = net_output[0, :, 0]
+    return net_output, h_t, c_t
+
+
+def post_processing(
+    net_output: torch.Tensor,
+    filter_states_lp_up_sample: np.ndarray,
+    blocks_queue: List,
+    chunk: torch.Tensor,
+) -> tuple:
+    """Helper function.
+
+    Performs postprocessing.
+
+    Parameters
+    ----------
+    net_output : torch.Tensor
+
+    filter_states_lp_up_sample : np.ndarray
+
+    blocks_queue : List
+
+    chunk : torch.Tensor
+
+
+    Returns
+    -------
+    tuple
+        output_buffer, filter_states_lp_up_sample, blocks_queue
+
+    """
+    ifft_block = compute_IFFT_from_block(net_output)
+    windowed_new_block_after_net = apply_window_on_block(ifft_block)
+    blocks_queue = remove_first_block_and_reorder(blocks_queue)
+    blocks_queue[3] = windowed_new_block_after_net
+    overlapping_chunk = get_overlapping_chunk_sum_from_blocks(blocks_queue)
+    output_buffer = torch.zeros_like(chunk)
+    output_buffer[::ds_factor] = overlapping_chunk
+    output_buffer, filter_states_lp_up_sample = signal.lfilter(
+        ds_factor * b,
+        a,
+        output_buffer,
+        axis=-1,
+        zi=filter_states_lp_up_sample,
+    )
+    output_buffer = torch.from_numpy(output_buffer)
+    return output_buffer, filter_states_lp_up_sample, blocks_queue
+
+
 def main():
     """Main function.
 
@@ -226,10 +332,6 @@ def main():
     if client.status.name_not_unique:
         print(f"unique name {client.name!r} assigned")
 
-    downsample = Resample(
-        client.samplerate, PROCESSING_FS, dtype=torch.float32)
-    upsample = Resample(PROCESSING_FS, client.samplerate, dtype=torch.double)
-
     event = threading.Event()
 
     @client.set_process_callback
@@ -238,7 +340,6 @@ def main():
         global blocks_queue
         global h_t
         global c_t
-        global I
         global filter_states_lp_down_sample
         global filter_states_lp_up_sample
 
@@ -246,85 +347,54 @@ def main():
 
         # Read stream from microphone(s).
         in_channels = []
-        for ic in range(0, NUM_IN_CHANNELS):
+        for ic in range(NUM_IN_CHANNELS):
             input_buffer = client.inports[ic].get_array()
             in_channels.append(input_buffer)
 
         # Perform signal processing magic.
         # Read chunk from stream and resample it to match processing fs.
-        chunk = torch.from_numpy(in_channels[1])
-        # DEBUG_IN_BUFFER[I * IN_CHUNK_SIZE: (I + 1) * IN_CHUNK_SIZE] = chunk
-        # ds_chunk = downsample(chunk)
-        chunk, filter_states_lp_down_sample = signal.lfilter(
-            b, a, chunk, axis=-1, zi=filter_states_lp_down_sample
-        )  # [D, T]
-        ds_chunk = chunk[::ds_factor]  # [D, T']
-        ds_chunk = torch.from_numpy(ds_chunk)
-        # Add chunk to block.
-        block = add_chunk(block, ds_chunk)
-        windowed_new_block_before_FFT = apply_window_on_block(block)
-        block_fft = compute_FFT(windowed_new_block_before_FFT)
-        # Simulate 3 channels.
-        fft_stack = torch.stack((block_fft, block_fft, block_fft), dim=0)
-        # Split imaginary and real parts of complex fft.
-        fft_split = torch.cat(
-            (torch.real(fft_stack), torch.imag(fft_stack)), dim=0
-        )
-        # Add dummy batch and time dimensions.
-        net_input = fft_split[None, :, :, None]
-        # Net processing:
-        net_output, _, h_t, c_t = trained_model.predict_rt(
-            batch=net_input, h_pre=h_t, c_pre=c_t
-        )
-        # net_output = block_fft
-        net_output = net_output[0, :, 0]
-        ifft_block = compute_IFFT_from_block(net_output)
-        windowed_new_block_after_net = apply_window_on_block(ifft_block)
-        blocks_queue = remove_first_block_and_reorder(blocks_queue)
-        blocks_queue[3] = windowed_new_block_after_net
-        overlapping_chunk = get_overlapping_chunk_sum_from_blocks(blocks_queue)
-        # print(overlapping_chunk)
-        # # Output streaming.
-        # resampled_chunk = upsample(overlapping_chunk)
-        # resampled_chunk = upsample(ds_chunk.to(dtype=torch.double))
-        # resampled_chunk.to(dtype=torch.int16)
-        # output_buffer = resampled_chunk
-        #
-        output_buffer = torch.zeros_like(torch.from_numpy(chunk))
-        # output_buffer[::ds_factor] = overlapping_chunk
-        output_buffer[::ds_factor] = ds_chunk
-        output_buffer, filter_states_lp_up_sample = signal.lfilter(
-            ds_factor * b,
-            a,
+        block_ffts = []
+        for channel in in_channels:
+            chunk = torch.from_numpy(channel)
+
+            (
+                block_fft,
+                block,
+                filter_states_lp_down_sample,
+            ) = pre_processing(chunk, block, filter_states_lp_down_sample)
+            block_ffts.append(block_fft)
+
+        # Decouple net from processing pileline if set to True.
+        if DEBUG:
+            net_output = block_ffts[0]
+        else:
+            # Limit input to 3 channels.
+            if len(block_ffts) >= 3:
+                fft_stack = torch.stack(
+                    (block_ffts[0], block_ffts[1], block_ffts[2]), dim=0
+                )
+            # If there are less that 3 input channels, simulate 3 to match net
+            # input.
+            elif len(block_ffts) == 2:
+                fft_stack = torch.stack(
+                    (block_ffts[0], block_ffts[1], block_ffts[0]), dim=0
+                )
+            else:
+                fft_stack = torch.stack(
+                    (block_ffts[0], block_ffts[0], block_ffts[0]), dim=0
+                )
+            net_output, h_t, c_t = net_processing(fft_stack, h_t, c_t)
+
+        (
             output_buffer,
-            axis=-1,
-            zi=filter_states_lp_up_sample,
+            filter_states_lp_up_sample,
+            blocks_queue,
+        ) = post_processing(
+            net_output, filter_states_lp_up_sample, blocks_queue, chunk
         )
-        output_buffer = torch.from_numpy(output_buffer)
-        # print(output_buffer)
-        # output_buffer = chunk
-
-        # DEBUG_OUT_BUFFER[
-        #     I * ds_chunk.shape[0]: (I + 1) * ds_chunk.shape[0]
-        # ] = ds_chunk
-        # I = I + 1
-        # print(PROCESSING_FS)
-        # print(client.samplerate)
-        # print(IN_CHUNK_SIZE)
-        # print(chunk.shape)
-        # print(output_buffer.shape)
-        # if I * IN_CHUNK_SIZE >= 9 * 48000:
-        #     with open('test.npy', 'wb') as f:
-        #         np.save(f, DEBUG_IN_BUFFER)
-        #         np.save(f, DEBUG_OUT_BUFFER)
-
-            # plt.plot(DEBUG_IN_BUFFER, "r")
-            # plt.plot(DEBUG_OUT_BUFFER, "b")
-            # plt.show()
-            # sys.exit("DEBUG")
 
         # Write stream to speaker(s).
-        for oc in range(0, NUM_OUT_CHANNELS):
+        for oc in range(NUM_OUT_CHANNELS):
             client.outports[oc].get_array()[:] = output_buffer.numpy()
 
     @client.set_shutdown_callback
