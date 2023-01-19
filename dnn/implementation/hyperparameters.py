@@ -20,8 +20,8 @@ from scipy.signal import get_window
 # General global settings #
 ###########################
 
-#device = "cuda" if torch.cuda.is_available() else "cpu"
-device = "cpu"
+device = "cuda" if torch.cuda.is_available() else "cpu"
+#device = "cpu"
 num_devices = 1
 num_workers = 8
 DATA_DIR = "soundfiles/"
@@ -44,7 +44,7 @@ input_size = 6  # 3 microphone channels * 2 (Re + Im).
 hidden_size_1 = 256
 hidden_size_2 = 128
 output_size = 2  # 1 channel * 2 (Re + Im).
-t_bidirectional = True
+t_bidirectional = False
 f_bidirectional = True
 batch_size = 1
 batch_first = True
@@ -74,7 +74,8 @@ log_samples = [0,1,2]
 # CHECKPOINT_DIR = None
 # checkpoint_name = "epoch=1-step=6000.ckpt" #  bi-directional
 # checkpoint_name = "epoch=90-step=273000.ckpt" #  uni-directional
-trained_model_path = "checkpoints/epoch=65-step=132000.ckpt" #  uni-directional
+# checkpoint_name = "epoch=65-step=132000.ckpt" #  bi-directional
+trained_model_path = "checkpoints/epoch=90-step=273000.ckpt"
 enable_checkpointing = True
 
 #############
@@ -102,7 +103,7 @@ is_test_run = False
 # Limit batches for debug training/prediction runs.
 limit_train_batches = 1.0
 limit_val_batches = 1.0
-limit_predict_batches = 0.01
+limit_predict_batches = 1.0
 overfit_batches = 0.0
 # Anomaly detection
 mode = True

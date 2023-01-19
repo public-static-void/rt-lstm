@@ -89,7 +89,8 @@ class CustomDataset(Dataset):
         window1 = torch.from_numpy(np.sqrt(get_window('hann', self.stft_length, fftbins=True)))
 
         if self.type == 'test':
-            data_index = self.data_clean[index].split("Test/")[1][:-10]
+            data_index = self.data_clean[index].split("Test/")[1][:-10] 
+            data_index = int(data_index)
 
         #Test if Tensor is empty
         clean_read,fs = soundfile.read(self.data_clean[index])
@@ -145,9 +146,18 @@ class CustomDataset(Dataset):
 
             start_sample = np.random.randint(0, mixture_read.shape[0]-samples_to_take)
 
-            clean_read = self.__cut__(clean_read, samples_to_take, start_sample,)
+            clean_read = self.__cut__(clean_read, samples_to_take, start_sample)
             noise_read = self.__cut__(noise_read, samples_to_take, start_sample)
             mixture_read = self.__cut__(mixture_read, samples_to_take, start_sample)
+
+        #In Test dataset cut long audio files to 15 seconds otherwise GPU is overloaded
+        else:
+            if clean_read.shape[0]/16000 > 15:
+                 clean_read = self.__cut__(clean_read, 15*self.sample_rate, 0)
+                 noise_read = self.__cut__(noise_read, 15*self.sample_rate, 0)
+                 mixture_read = self.__cut__(mixture_read, 15*self.sample_rate, 0)
+
+
 
         #print(clean_read.shape)
         #print(noise_read.shape)

@@ -138,15 +138,15 @@ class LitNeuralNet(pl.LightningModule):
         x = x.reshape(n_batch, n_t, n_f, self.lstm2_in)
         x = x.permute(0, 2, 1, 3)
         x = x.reshape(n_batch * n_f, n_t, self.lstm2_in)
-        print(x)
-        print(h_pre.shape)
-        print(c_pre.shape)
-        print(x.shape)
+        #print(x)
+        #print(h_pre.shape)
+        #print(c_pre.shape)
+        #print(x.shape)
         # TODO: an dieser stelle gehts nicht weiter.
         x, (h_new, c_new) = self.lstm2(
-            x, (h_pre.to("cpu"), c_pre.to("cpu"))
+            x, (h_pre, c_pre)
         )
-        print(x)
+        #print(x)
         x = x.reshape(n_batch, n_f, n_t, self.dense_in)
         x = self.dense(x)
         x = x.permute(0, 3, 1, 2)
@@ -471,7 +471,10 @@ class LitNeuralNet(pl.LightningModule):
         """
 
         meta_data = batch[-1]
+        #needed to get data index as a s
+        meta_data.update(data_index = int(meta_data['data_index'].item()))
         batch = batch[:-1]
+        print(batch[0].shape)
 
 
 
@@ -497,17 +500,17 @@ class LitNeuralNet(pl.LightningModule):
         )
 
         sf.write(
-            hp.OUT_DIR + "mix-" + str(meta_data['data_index'][0]) + ".wav",
+            hp.OUT_DIR + "mix-" + str(meta_data['data_index']) + ".wav",
             mix_istft.cpu(),
             hp.fs,
         )
         sf.write(
-            hp.OUT_DIR + "clean-" + str(meta_data['data_index'][0]) + ".wav",
+            hp.OUT_DIR + "clean-" + str(meta_data['data_index']) + ".wav",
             clean_istft.cpu(),
             hp.fs,
         )
         sf.write(
-            hp.OUT_DIR + "pred-" + str(meta_data['data_index'][0]) + ".wav",
+            hp.OUT_DIR + "pred-" + str(meta_data['data_index']) + ".wav",
             pred_istft.cpu(),
             hp.fs,
         )
@@ -521,7 +524,7 @@ class LitNeuralNet(pl.LightningModule):
         json_object = json.dumps(meta_data)
 
         # Writing to sample.json
-        with open("out/meta_"+meta_data["data_index"][0], "w") as outfile:
+        with open(f"out/meta_{meta_data['data_index']}", "w") as outfile:
             outfile.write(json_object)
 
 
