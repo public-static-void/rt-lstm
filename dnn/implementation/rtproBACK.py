@@ -20,7 +20,8 @@ import hyperparameters as hp
 import jack
 import numpy as np
 import torch
-from dsp_utils import get_butter_coeffs
+# from dsp_utils import get_butter_coeffs
+from dsp_utils import get_butter_coeffs, get_periodic_hann, get_windowed_rfft, get_windowed_irfft
 from net import LitNeuralNet
 from scipy import signal
 from scipy.signal import get_window
@@ -37,12 +38,16 @@ PROCESSING_FS = hp.fs  # 16000
 CHUNK_SIZE_MS = 8
 # Block size in ms.
 BLOCK_SIZE_MS = 32
+# Input chunk size in samples.
+IN_CHUNK_SIZE = int(48000 * CHUNK_SIZE_MS / 1000)
+# Input block size in samples.
+IN_BLOCK_SIZE = int(48000 * BLOCK_SIZE_MS / 1000)
 # Processing chunk size in samples.
 PRO_CHUNK_SIZE = int(PROCESSING_FS * CHUNK_SIZE_MS / 1000)
 # Processing block size in samples.
 PRO_BLOCK_SIZE = int(PROCESSING_FS * BLOCK_SIZE_MS / 1000)
 
-NUM_IN_CHANNELS = 2
+NUM_IN_CHANNELS = 3
 NUM_OUT_CHANNELS = 2
 
 # Init empty block.
@@ -56,6 +61,7 @@ blocks_queue = [
 WINDOW = torch.from_numpy(
     np.sqrt(get_window("hann", hp.stft_length, hp.fftbins))
 )
+WIN_SCALE = 2
 trained_model = LitNeuralNet.load_from_checkpoint(
     checkpoint_path=hp.trained_model_path
 )
@@ -70,6 +76,13 @@ b, a = get_butter_coeffs(ds_factor, LP_ORDER)
 filter_states_lp_down_sample = np.zeros(LP_ORDER)
 filter_states_lp_up_sample = np.zeros(LP_ORDER)
 
+output_buffer = np.zeros(IN_BLOCK_SIZE)
+# DEBUG
+I = 0
+DEBUG_IN_BUFFER = torch.zeros(30 * 48000)
+DEBUG_DS_BUFFER = torch.zeros(30 * 16000)
+DEBUG_US_BUFFER = torch.zeros(30 * 16000)
+DEBUG_OUT_BUFFER = torch.zeros(30 * 48000)
 
 def add_chunk(block: torch.Tensor, chunk: torch.Tensor) -> torch.Tensor:
     """Helper function.
@@ -221,6 +234,12 @@ def pre_processing(
     ds_chunk = chunk[::ds_factor]  # [D, T']
     ds_chunk = torch.from_numpy(ds_chunk)
 
+    # DEBUG
+    global I
+    DEBUG_DS_BUFFER[
+            I * ds_chunk.shape[0]: (I + 1) * ds_chunk.shape[0]
+        ] = ds_chunk
+
     # Add chunk to block.
     block = add_chunk(block, ds_chunk)
     windowed_new_block_before_FFT = apply_window_on_block(block)
@@ -305,6 +324,13 @@ def post_processing(
         zi=filter_states_lp_up_sample,
     )
     output_buffer = torch.from_numpy(output_buffer)
+
+    # DEBUG
+    global I
+    DEBUG_US_BUFFER[
+            I * output_buffer.shape[0]: (I + 1) * output_buffer.shape[0]
+        ] = output_buffer
+
     return output_buffer, filter_states_lp_up_sample, blocks_queue
 
 
@@ -342,6 +368,9 @@ def main():
         global c_t
         global filter_states_lp_down_sample
         global filter_states_lp_up_sample
+        # DEBUG
+        global I
+        global output_buffer
 
         assert frames == client.blocksize
 
@@ -385,13 +414,46 @@ def main():
                 )
             net_output, h_t, c_t = net_processing(fft_stack, h_t, c_t)
 
-        (
-            output_buffer,
-            filter_states_lp_up_sample,
-            blocks_queue,
-        ) = post_processing(
-            net_output, filter_states_lp_up_sample, blocks_queue, chunk
-        )
+        # (
+        #     output_buffer,
+        #     filter_states_lp_up_sample,
+        #     blocks_queue,
+        # ) = post_processing(
+        #     net_output, filter_states_lp_up_sample, blocks_queue, chunk
+        # )
+        np.concatenate(output_buffer, get_windowed_irfft(net_output, WINDOW,
+                                                         PRO_BLOCK_SIZE) /
+                                                         WIN_SCALE)
+        output_signal = overlap_add_buffer[:PRO_CHUNK_SIZE]
+        overlap_add_buffer[:-PRO_CHUNK_SIZE] = overlap_add_buffer[PRO_CHUNK_SIZE:]
+        overlap_add_buffer[-PRO_CHUNK_SIZE:] = 0.0
+
+        # DEBUG
+        print("in chunk size", IN_CHUNK_SIZE)
+        print("pro chunk size", PRO_CHUNK_SIZE)
+        print("net input shape", block_ffts[0].shape)
+        print("net output shape", net_output.shape)
+        print("debug in buffer shape", DEBUG_IN_BUFFER.shape)
+        print("debug ds buffer shape", DEBUG_DS_BUFFER.shape)
+        print("debug us buffer shape", DEBUG_US_BUFFER.shape)
+        print("debug out buffer size", DEBUG_OUT_BUFFER.shape)
+        DEBUG_IN_BUFFER[I * IN_CHUNK_SIZE: (I + 1) * IN_CHUNK_SIZE] = torch.from_numpy(in_channels[0])
+        DEBUG_OUT_BUFFER[I * IN_CHUNK_SIZE: (I + 1) * IN_CHUNK_SIZE] = output_buffer
+        I = I + 1
+
+        # DEBUG
+        # if I * IN_CHUNK_SIZE >= 9 * 48000:
+        #     with open('test.npy', 'wb') as f:
+        #         np.save(f, DEBUG_IN_BUFFER)
+        #         np.save(f, DEBUG_DS_BUFFER)
+        #         np.save(f, DEBUG_US_BUFFER)
+        #         np.save(f, DEBUG_OUT_BUFFER)
+
+        #             # plt.plot(DEBUG_IN_BUFFER, "r")
+        #             # plt.plot(DEBUG_DS_BUFFER, "b")
+        #             # plt.show()
+        #         sys.exit("DEBUG")
+
 
         # Write stream to speaker(s).
         for oc in range(NUM_OUT_CHANNELS):
@@ -405,7 +467,7 @@ def main():
         event.set()
 
     # create two port pairs
-    for number in 1, 2:
+    for number in 1, 2, 3:
         client.inports.register(f"input_{number}")
         client.outports.register(f"output_{number}")
 

@@ -138,15 +138,9 @@ class LitNeuralNet(pl.LightningModule):
         x = x.reshape(n_batch, n_t, n_f, self.lstm2_in)
         x = x.permute(0, 2, 1, 3)
         x = x.reshape(n_batch * n_f, n_t, self.lstm2_in)
-        print(x)
-        print(h_pre.shape)
-        print(c_pre.shape)
-        print(x.shape)
-        # TODO: an dieser stelle gehts nicht weiter.
         x, (h_new, c_new) = self.lstm2(
             x, (h_pre.to("cpu"), c_pre.to("cpu"))
         )
-        print(x)
         x = x.reshape(n_batch, n_f, n_t, self.dense_in)
         x = self.dense(x)
         x = x.permute(0, 3, 1, 2)
