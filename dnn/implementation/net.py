@@ -35,6 +35,7 @@ class LitNeuralNet(pl.LightningModule):
         hidden_size_1: int,
         hidden_size_2: int,
         output_size: int,
+        batch_size: int,
     ):
         """Constructor.
 
@@ -61,7 +62,7 @@ class LitNeuralNet(pl.LightningModule):
             Size of the net's output layer.
         """
         super(LitNeuralNet, self).__init__()
-        self.batch_size = hp.batch_size
+        self.batch_size = batch_size
         self.input_size = input_size
         self.hidden_size_1 = hidden_size_1
         self.hidden_size_2 = hidden_size_2
