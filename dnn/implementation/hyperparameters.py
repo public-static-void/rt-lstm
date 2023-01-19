@@ -111,3 +111,6 @@ mode = True
 check_nan = True
 # Automatically find best learning rate.
 auto_lr_find = False
+# Automatically find best batch size. Can be set to True, False, 'power' or
+# binsearch'.
+auto_bs_find = "binsearch"

@@ -18,6 +18,7 @@ import soundfile as sf
 import torch
 import torch.nn as nn
 import torchaudio
+from dataset import CustomDataset
 from matplotlib import pyplot as plt
 from torchmetrics import ScaleInvariantSignalDistortionRatio as SI_SDR
 
@@ -60,6 +61,7 @@ class LitNeuralNet(pl.LightningModule):
             Size of the net's output layer.
         """
         super(LitNeuralNet, self).__init__()
+        self.batch_size = hp.batch_size
         self.input_size = input_size
         self.hidden_size_1 = hidden_size_1
         self.hidden_size_2 = hidden_size_2
@@ -568,3 +570,42 @@ class LitNeuralNet(pl.LightningModule):
         prediction = mask_co * mix_co
 
         return prediction, mix, h_out, c_out
+
+
+def train_dataloader(self):
+    """Initialize the data used in training."""
+    train_dataset = CustomDataset(type="training")
+
+    train_loader = torch.utils.data.DataLoader(
+        dataset=train_dataset,
+        batch_size=self.batch_size,
+        num_workers=hp.num_workers,
+        shuffle=True,
+    )
+    return train_loader
+
+
+def val_dataloader(self):
+    """Initialize the data used in validation."""
+    val_dataset = CustomDataset(type="validation")
+
+    val_loader = torch.utils.data.DataLoader(
+        dataset=val_dataset,
+        batch_size=self.batch_size,
+        num_workers=hp.num_workers,
+        shuffle=False,
+    )
+    return val_loader
+
+
+def predict_dataloader(self):
+    """Initialize the data used in prediction."""
+    test_dataset = CustomDataset(type="test")
+
+    test_loader = torch.utils.data.DataLoader(
+        dataset=test_dataset,
+        batch_size=self.batch_size,
+        num_workers=hp.num_workers,
+        shuffle=False,
+    )
+    return test_loader

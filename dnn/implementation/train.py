@@ -5,7 +5,7 @@
 Authors       : Vadim Titov
 Matr.-Nr.     : 6021356
 Created       : June 23rd, 2022
-Last modified : December 14th, 2022
+Last modified : January 19th, 2023
 Description   : Master's Project "Source Separation for Robot Control"
 Topic         : Training module of the LSTM RNN Project
 """
@@ -37,26 +37,25 @@ def main():
         limit_val_batches=hp.limit_val_batches,
         overfit_batches=hp.overfit_batches,
         auto_lr_find=hp.auto_lr_find,
+        auto_scale_batch_size=hp.auto_bs_find,
     )
     # Initialize net.
     model = LitNeuralNet(
         hp.input_size, hp.hidden_size_1, hp.hidden_size_2, hp.output_size
     )
     print(model)
-    if hp.auto_lr_find is True:
-        # Let lightning try to find ideal learning rate.
+    if hp.auto_lr_find is True or hp.auto_scale_batch_size is not False:
+        # Let lightning try to find ideal learning rate and batch size.
         trainer.tune(
             model,
-            dataloaders.train_dataloader(),
-            dataloaders.val_dataloader(),
         )
-        model.learning_rate
+        if hp.auto_lr_find is True:
+            model.learning_rate
+        if hp.auto_bs_find is not False:
+            model.batch_size
     # Train model.
     trainer.fit(
         model,
-        # Select dataloaders.
-        dataloaders.train_dataloader(),
-        dataloaders.val_dataloader(),
         # HDF5DataModule(
         #     batch_size=hp.batch_size,
         #     prep_files={
