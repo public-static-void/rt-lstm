@@ -5,7 +5,7 @@
 Authors       : Vadim Titov
 Matr.-Nr.     : 6021356
 Created       : June 23rd, 2022
-Last modified : December 14th, 2022
+Last modified : January 19th, 2023
 Description   : Master's Project "Source Separation for Robot Control"
 Topic         : Hyperparameters module of the LSTM RNN Project
 """
@@ -21,7 +21,7 @@ from scipy.signal import get_window
 ###########################
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
-#device = "cpu"
+# device = "cpu"
 num_devices = 1
 num_workers = 8
 DATA_DIR = "soundfiles/"
@@ -30,7 +30,8 @@ OUT_DIR = "out/"
 # STFT settings.
 fs = 16000
 stft_length = 512
-stft_shift = 256
+# stft_shift = 256  # TODO: halbieren (128) und neuen ckpt trainieren.
+stft_shift = 128  # TODO: halbieren (128) und neuen ckpt trainieren.
 fftbins = True
 window = torch.from_numpy(np.sqrt(get_window("hann", stft_length, fftbins))).to(
     device
@@ -45,7 +46,7 @@ hidden_size_1 = 256
 hidden_size_2 = 128
 output_size = 2  # 1 channel * 2 (Re + Im).
 t_bidirectional = False
-f_bidirectional = True
+f_bidirectional = True  # TODO: Auch für den lstm nen bi-false ckpt trainieren
 batch_size = 1
 batch_first = True
 num_epochs = 100
@@ -74,8 +75,8 @@ log_samples = [0,1,2]
 # CHECKPOINT_DIR = None
 # checkpoint_name = "epoch=1-step=6000.ckpt" #  bi-directional
 # checkpoint_name = "epoch=90-step=273000.ckpt" #  uni-directional
-# checkpoint_name = "epoch=65-step=132000.ckpt" #  bi-directional
-trained_model_path = "checkpoints/epoch=90-step=273000.ckpt"
+# trained_model_path = "checkpoints/epoch=65-step=132000.ckpt" #  uni-?
+trained_model_path = "checkpoints/epoch=90-step=273000.ckpt" #  uni-t rt
 enable_checkpointing = True
 
 #############

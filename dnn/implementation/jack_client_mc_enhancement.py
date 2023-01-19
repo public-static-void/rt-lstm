@@ -1,33 +1,38 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-
-"""
-Authors       : Vadim Titov, Henning Möllers
-Matr.-Nr.     : 6021356, ...
-Created       : January 18th, 2023
-Last modified : January 18th, 2023
-Description   : Master's Project "Source Separation for Robot Control"
-Topic         : Real-time audio processing module of the LSTM RNN Project
-"""
-
-import os
-import sys
-import threading
-import traceback
+import numpy
 import numpy as np
 from scipy import signal
 import jack
 import torch
 from net import LitNeuralNet
 import hyperparameters as hp
+#import threading
 
 from dsp_utils import get_butter_coeffs, get_periodic_hann, get_windowed_rfft, get_windowed_irfft
+# from nn_model import get_model, perform_enhancement
 
 # #############################
 # DNN model configuration
 # #############################
+# config_file = 'config.yaml'
+# model = get_model(config_file)
 
-# Load pretrained model from checkpoint.
+
+# #############################
+# Configure DSP settings
+# #############################
+
+INPUT_FS = 48000
+PROC_FS = 16000
+N_CHANNEL = 3
+FFT_LEN = 512       # 32 ms
+FFT_SHIFT = 128     # 8 ms
+WIN_SCALE = 2       # due to 75% overlap
+LP_ORDER = 16
+BLOCK_LEN = 384
+
+ds_factor = int(INPUT_FS/PROC_FS)
+fft_bins = int(FFT_LEN/2 + 1)
+
 trained_model = LitNeuralNet.load_from_checkpoint(
     checkpoint_path=hp.trained_model_path
 )
@@ -38,55 +43,30 @@ h_t = None
 c_t = None
 
 # #############################
-# Configure DSP settings
-# #############################
-
-INPUT_FS = 48000
-PROC_FS = 16000
-FFT_LEN = 512       # 32 ms
-FFT_SHIFT = 128     # 8 ms
-WIN_SCALE = 2       # due to 75% overlap
-LP_ORDER = 16
-BLOCK_LEN = 384
-
-ds_factor = int(INPUT_FS/PROC_FS)
-fft_bins = int(FFT_LEN/2 + 1)
-
-NUM_IN_CHANNELS = 3
-NUM_OUT_CHANNELS = 2
-
-# #############################
 # Set-up jack client
 # #############################
-
-argv = iter(sys.argv)
-# By default, use script name without extension as client name:
-defaultclientname = os.path.splitext(os.path.basename(next(argv)))[0]
-clientname = next(argv, defaultclientname)
-servername = next(argv, None)
-
-try:
-    client = jack.Client(clientname, servername=servername)
-except jack.JackError:
-    sys.exit("JACK server not running?")
+client = jack.Client("MCSpeechEnhancement")
 
 if client.status.server_started:
     print("JACK server started")
 if client.status.name_not_unique:
-    print(f"unique name {client.name!r} assigned")
+    print("unique name {0!r} assigned".format(client.name))
+#event = threading.Event()
+
 
 # ###############################
 # Global variables
 # ###############################
 
-block_in_buffer = np.zeros((NUM_IN_CHANNELS, BLOCK_LEN))
+block_in_buffer = np.zeros((N_CHANNEL, BLOCK_LEN))
 block_out_buffer = np.zeros(BLOCK_LEN)
-fft_buffer = np.zeros((NUM_IN_CHANNELS, FFT_LEN))
+fft_buffer = np.zeros((N_CHANNEL, FFT_LEN))
 overlap_add_buffer = np.zeros(FFT_LEN)
 b, a = get_butter_coeffs(ds_factor, LP_ORDER)
-filter_states_lp_down_sample = np.zeros((NUM_IN_CHANNELS, LP_ORDER))
+filter_states_lp_down_sample = np.zeros((N_CHANNEL, LP_ORDER))
 filter_states_lp_up_sample = np.zeros(LP_ORDER)
 window = get_periodic_hann(FFT_LEN)
+
 
 # ###############################
 #  Processing
@@ -139,6 +119,8 @@ def block_processing(input_buffer):
     fft_data = get_windowed_rfft(np.ascontiguousarray(fft_buffer), window, FFT_LEN)
 
     # Perform speech enhancement in the frequency domain
+    # signal = perform_enhancement(model, fft_data, ref_channel=0)
+    # signal = fft_data[0]
     signal, h_t, c_t = net_processing(torch.from_numpy(fft_data), h_t, c_t)
 
     # Overlap-add
@@ -149,6 +131,7 @@ def block_processing(input_buffer):
 
     return output_signal
 
+
 @client.set_process_callback
 def process(frames):
 
@@ -158,7 +141,7 @@ def process(frames):
     global filter_states_lp_up_sample
 
     # Collect data in block_buffer
-    for i in range(NUM_IN_CHANNELS):
+    for i in range(N_CHANNEL):
         block_in_buffer[i] = client.inports[i].get_array()
 
     # Down-sample from INPUT_FS to PROC_FS
@@ -173,56 +156,24 @@ def process(frames):
     block_out_buffer[::ds_factor] = enhanced_signal
     block_out_buffer, filter_states_lp_up_sample = signal.lfilter(ds_factor*b, a, block_out_buffer, axis=-1, zi=filter_states_lp_up_sample)
 
-    # Write stream to speaker(s).
-    for oc in range(NUM_OUT_CHANNELS):
-        client.outports[oc].get_array()[:] = block_out_buffer
+    # Store result
+    client.outports[0].get_array()[:] = block_out_buffer
+
 
 @client.set_shutdown_callback
 def shutdown(status, reason):
     print("JACK shutdown! status:", status, " reason:", reason )
-    event.set()
+    #event.set()
 
-def main():
-    """Main function.
 
-    Continuously reads data from input stream, processes it using a
-    pretrained neural net in order to perform noise reduction and writes
-    the results to an output stream.
-    """
+for i in range(N_CHANNEL):
+    client.inports.register(F"mixed_speech_ch{i}")
+client.outports.register("enhanced_speech")
 
-    event = threading.Event()
-    for number in range(NUM_IN_CHANNELS):
-        client.inports.register(f"input_{number}")
-    for number in range(NUM_OUT_CHANNELS):
-        client.outports.register(f"output_{number}")
-
-    print('activating JACK')
-
-    with client:
-        capture = client.get_ports(is_physical=True, is_output=True)
-        if not capture:
-            raise RuntimeError("No physical capture ports")
-
-        for src, dest in zip(capture, client.inports):
-            client.connect(src, dest)
-
-        playback = client.get_ports(is_physical=True, is_input=True)
-        if not playback:
-            raise RuntimeError("No physical playback ports")
-
-        for src, dest in zip(client.outports, playback):
-            client.connect(src, dest)
-
-        print("Press Ctrl+C to stop")
-
-        try:
-            while True:
-                event.wait()
-
-        except KeyboardInterrupt:
-            print("\nInterrupted by user")
-        except Exception:
-            print(traceback.format_exc())
-
-if __name__ == "__main__":
-    main()
+print('activating JACK')
+with client:
+    print('#' * 80)
+    print('press Return to quit')
+    print('#' * 80)
+    input()
+    print('closing JACK')

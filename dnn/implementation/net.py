@@ -5,7 +5,7 @@
 Authors       : Vadim Titov
 Matr.-Nr.     : 6021356
 Created       : June 23rd, 2022
-Last modified : December 20th, 2022
+Last modified : january 19th, 2023
 Description   : Master's Project "Source Separation for Robot Control"
 Topic         : Net module of the LSTM RNN Project
 """
@@ -68,12 +68,21 @@ class LitNeuralNet(pl.LightningModule):
         self.f_bidirectional = hp.f_bidirectional
         self.lstm1_in = self.input_size
         self.lstm1_out = self.hidden_size_1
-        self.lstm2_in = 2 * self.hidden_size_1
 
-        if self.t_bidirectional is True:
+        if self.t_bidirectional is True and self.f_bidirectional is True:
+            self.lstm2_in = 2 * self.hidden_size_1
             self.lstm2_out = self.hidden_size_2
             self.dense_in = 2 * self.hidden_size_2
-        else:
+        elif self.t_bidirectional is True and self.f_bidirectional is False:
+            self.lstm2_in = self.hidden_size_1
+            self.lstm2_out = self.hidden_size_2
+            self.dense_in = 2 * self.hidden_size_2
+        elif self.t_bidirectional is False and self.f_bidirectional is True:
+            self.lstm2_in = 2 * self.hidden_size_1
+            self.lstm2_out = self.hidden_size_2
+            self.dense_in = self.hidden_size_2
+        elif self.t_bidirectional is False and self.f_bidirectional is False:
+            self.lstm2_in = self.hidden_size_1
             self.lstm2_out = self.hidden_size_2
             self.dense_in = self.hidden_size_2
 
@@ -138,15 +147,9 @@ class LitNeuralNet(pl.LightningModule):
         x = x.reshape(n_batch, n_t, n_f, self.lstm2_in)
         x = x.permute(0, 2, 1, 3)
         x = x.reshape(n_batch * n_f, n_t, self.lstm2_in)
-        #print(x)
-        #print(h_pre.shape)
-        #print(c_pre.shape)
-        #print(x.shape)
-        # TODO: an dieser stelle gehts nicht weiter.
         x, (h_new, c_new) = self.lstm2(
-            x, (h_pre, c_pre)
+            x, (h_pre.to(hp.device), c_pre.to(hp.device))
         )
-        #print(x)
         x = x.reshape(n_batch, n_f, n_t, self.dense_in)
         x = self.dense(x)
         x = x.permute(0, 3, 1, 2)
