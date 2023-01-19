@@ -138,14 +138,15 @@ class LitNeuralNet(pl.LightningModule):
                 c_pre = torch.randn(
                     1, hidden_state_size, int(self.hidden_size_2)
                 )
+            h_pre = h_pre.to(hp.device)
+            c_pre = c_pre.to(hp.device)
         x = x.permute(0, 3, 2, 1)
         x = x.reshape(n_batch * n_t, n_f, n_ch)
         x, _ = self.lstm1(x)
         x = x.reshape(n_batch, n_t, n_f, self.lstm2_in)
         x = x.permute(0, 2, 1, 3)
         x = x.reshape(n_batch * n_f, n_t, self.lstm2_in)
-        x, (h_new, c_new) = self.lstm2(x, (h_pre.to(hp.device),
-                                           c_pre.to(hp.device)))
+        x, (h_new, c_new) = self.lstm2(x, (h_pre, c_pre))
         x = x.reshape(n_batch, n_f, n_t, self.dense_in)
         x = self.dense(x)
         x = x.permute(0, 3, 1, 2)
@@ -553,6 +554,7 @@ class LitNeuralNet(pl.LightningModule):
         # Unpack and cast input data for further processing.
         mix = batch
         mix = mix.float()
+        mix = mix.to(hp.device)
 
         # Compute mask.
         comp_mask, h_new, c_new = self(mix, h_pre, c_pre)

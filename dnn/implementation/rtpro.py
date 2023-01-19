@@ -35,7 +35,7 @@ from scipy import signal
 # Load pretrained model from checkpoint.
 trained_model = LitNeuralNet.load_from_checkpoint(
     checkpoint_path=hp.trained_model_path
-)
+).to(hp.device)
 trained_model.eval()
 trained_model.freeze()
 # Init hidden and cell state of time-dimension LSTM.
@@ -148,7 +148,7 @@ def block_processing(input_buffer):
 
     # Perform speech enhancement in the frequency domain
     signal, h_t, c_t = net_processing(torch.from_numpy(fft_data), h_t, c_t)
-
+    signal = signal.to("cpu")
     # Overlap-add
     overlap_add_buffer += (
         get_windowed_irfft(signal, window, FFT_LEN) / WIN_SCALE
