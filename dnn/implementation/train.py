@@ -36,22 +36,21 @@ def main():
         limit_val_batches=hp.limit_val_batches,
         overfit_batches=hp.overfit_batches,
         auto_lr_find=hp.auto_lr_find,
-        auto_scale_batch_size=hp.auto_bs_find,
     )
     # Initialize net.
     model = LitNeuralNet(
-        hp.input_size, hp.hidden_size_1, hp.hidden_size_2, hp.output_size
+        input_size=hp.input_size, hidden_size_1=hp.hidden_size_1,
+        hidden_size_2=hp.hidden_size_2, output_size=hp.output_size,
+        batch_size=hp.batch_size,
     )
     print(model)
-    if hp.auto_lr_find is True or hp.auto_bs_find is not False:
+    if hp.auto_lr_find is True:
         # Let lightning try to find ideal learning rate and batch size.
         trainer.tune(
             model,
         )
         if hp.auto_lr_find is True:
             model.learning_rate
-        if hp.auto_bs_find is not False:
-            model.batch_size
     # Train model.
     trainer.fit(
         model,

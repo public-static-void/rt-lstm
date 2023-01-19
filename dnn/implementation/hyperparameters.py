@@ -46,8 +46,8 @@ hidden_size_1 = 256
 hidden_size_2 = 128
 output_size = 2  # 1 channel * 2 (Re + Im).
 t_bidirectional = False
-f_bidirectional = True
-batch_size = 2
+f_bidirectional = False
+batch_size = 3
 batch_first = True
 num_epochs = 100
 learning_rate = 0.0005
@@ -111,6 +111,3 @@ mode = True
 check_nan = True
 # Automatically find best learning rate.
 auto_lr_find = False
-# Automatically find best batch size. Can be set to True, False, 'power' or
-# binsearch'.
-auto_bs_find = "binsearch"

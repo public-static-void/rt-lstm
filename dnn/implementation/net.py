@@ -60,6 +60,8 @@ class LitNeuralNet(pl.LightningModule):
             Size of the second LSTM hidden layer's output.
         output_size : int
             Size of the net's output layer.
+        batch_size : int
+            Size of the batch dimension.
         """
         super(LitNeuralNet, self).__init__()
         self.batch_size = batch_size

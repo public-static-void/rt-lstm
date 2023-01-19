@@ -34,7 +34,7 @@ from scipy import signal
 
 # Load pretrained model from checkpoint.
 trained_model = LitNeuralNet.load_from_checkpoint(
-    checkpoint_path=hp.trained_model_path, batch_size=1
+    checkpoint_path=hp.trained_model_path, batch_size=1,
 ).to(hp.device)
 trained_model.eval()
 trained_model.freeze()
