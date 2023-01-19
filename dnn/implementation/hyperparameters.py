@@ -20,8 +20,8 @@ from scipy.signal import get_window
 # General global settings #
 ###########################
 
-#device = "cuda" if torch.cuda.is_available() else "cpu"
-device = "cpu"
+device = "cuda" if torch.cuda.is_available() else "cpu"
+# device = "cpu"
 num_devices = 1
 num_workers = 8
 DATA_DIR = "soundfiles/"
@@ -30,7 +30,8 @@ OUT_DIR = "out/"
 # STFT settings.
 fs = 16000
 stft_length = 512
-stft_shift = 256  # TODO: halbieren (128) und neuen ckpt trainieren.
+# stft_shift = 256  # TODO: halbieren (128) und neuen ckpt trainieren.
+stft_shift = 128  # TODO: halbieren (128) und neuen ckpt trainieren.
 fftbins = True
 window = torch.from_numpy(np.sqrt(get_window("hann", stft_length, fftbins))).to(
     device
@@ -45,7 +46,7 @@ hidden_size_1 = 256
 hidden_size_2 = 128
 output_size = 2  # 1 channel * 2 (Re + Im).
 t_bidirectional = False
-f_bidirectional = True  # TODO: Auch für den lstm nen bi-false ckpt trainieren.
+f_bidirectional = True  # TODO: Auch für den lstm nen bi-false ckpt trainieren
 batch_size = 1
 batch_first = True
 num_epochs = 100
