@@ -64,7 +64,7 @@ on_epoch = True
 log_every_n_steps = 1
 tb_logger = pl_loggers.TensorBoardLogger(LOG_DIR, log_graph=False)
 # For which samples from a batch should spectrogram and wav audio be logged.
-log_samples = [0,1,2]
+log_samples = [0, 1, 2]
 
 #################
 # Checkpointing #
@@ -76,7 +76,7 @@ log_samples = [0,1,2]
 # checkpoint_name = "epoch=1-step=6000.ckpt" #  bi-directional
 # checkpoint_name = "epoch=90-step=273000.ckpt" #  uni-directional
 # trained_model_path = "checkpoints/epoch=65-step=132000.ckpt" #  uni-?
-trained_model_path = "checkpoints/epoch=90-step=273000.ckpt" #  uni-t rt
+trained_model_path = "checkpoints/epoch=90-step=273000.ckpt"  # uni-t rt
 enable_checkpointing = True
 
 #############

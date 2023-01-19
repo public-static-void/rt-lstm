@@ -12,9 +12,10 @@ Topic         : Prediction module of the LSTM RNN Project
 
 import dataloaders
 import hyperparameters as hp
+import performance
 import pytorch_lightning as pl
 from net import LitNeuralNet
-import performance
+
 
 def main():
     """Main function.
@@ -44,8 +45,9 @@ def main():
     )
 
     # Perform prediction.
-    predictions = trainer.predict(trained_model, dataloaders.test_dataloader(),
-                                  None, None)
+    predictions = trainer.predict(
+        trained_model, dataloaders.test_dataloader(), None, None
+    )
     performance.__calculate_pesq__()
 
 

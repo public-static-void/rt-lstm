@@ -10,6 +10,8 @@ Description   : Master's Project "Source Separation for Robot Control"
 Topic         : Net module of the LSTM RNN Project
 """
 
+import json
+
 import hyperparameters as hp
 import pytorch_lightning as pl
 import soundfile as sf
@@ -18,7 +20,6 @@ import torch.nn as nn
 import torchaudio
 from matplotlib import pyplot as plt
 from torchmetrics import ScaleInvariantSignalDistortionRatio as SI_SDR
-import json
 
 
 class LitNeuralNet(pl.LightningModule):
@@ -128,28 +129,22 @@ class LitNeuralNet(pl.LightningModule):
         hidden_state_size = hp.batch_size * n_f
         if h_pre is None and c_pre is None:
             if self.t_bidirectional is True:
-                h_pre = torch.randn(
-                    2, hidden_state_size, self.hidden_size_2
-                ).to(hp.device)
-                c_pre = torch.randn(
-                    2, hidden_state_size, self.hidden_size_2
-                ).to(hp.device)
+                h_pre = torch.randn(2, hidden_state_size, self.hidden_size_2)
+                c_pre = torch.randn(2, hidden_state_size, self.hidden_size_2)
             else:
                 h_pre = torch.randn(
                     1, hidden_state_size, int(self.hidden_size_2)
-                ).to(hp.device)
+                )
                 c_pre = torch.randn(
                     1, hidden_state_size, int(self.hidden_size_2)
-                ).to(hp.device)
+                )
         x = x.permute(0, 3, 2, 1)
         x = x.reshape(n_batch * n_t, n_f, n_ch)
         x, _ = self.lstm1(x)
         x = x.reshape(n_batch, n_t, n_f, self.lstm2_in)
         x = x.permute(0, 2, 1, 3)
         x = x.reshape(n_batch * n_f, n_t, self.lstm2_in)
-        x, (h_new, c_new) = self.lstm2(
-            x, (h_pre.to(hp.device), c_pre.to(hp.device))
-        )
+        x, (h_new, c_new) = self.lstm2(x, (h_pre, c_pre))
         x = x.reshape(n_batch, n_f, n_t, self.dense_in)
         x = self.dense(x)
         x = x.permute(0, 3, 1, 2)
@@ -474,12 +469,10 @@ class LitNeuralNet(pl.LightningModule):
         """
 
         meta_data = batch[-1]
-        #needed to get data index as a s
-        meta_data.update(data_index = int(meta_data['data_index'].item()))
+        # needed to get data index as a s
+        meta_data.update(data_index=int(meta_data["data_index"].item()))
         batch = batch[:-1]
         print(batch[0].shape)
-
-
 
         _, clean_co, mix_co, prediction, h_new, c_new = self.common_step(
             batch, batch_idx, h_pre, c_pre
@@ -503,25 +496,26 @@ class LitNeuralNet(pl.LightningModule):
         )
 
         sf.write(
-            hp.OUT_DIR + "mix-" + str(meta_data['data_index']) + ".wav",
+            hp.OUT_DIR + "mix-" + str(meta_data["data_index"]) + ".wav",
             mix_istft.cpu(),
             hp.fs,
         )
         sf.write(
-            hp.OUT_DIR + "clean-" + str(meta_data['data_index']) + ".wav",
+            hp.OUT_DIR + "clean-" + str(meta_data["data_index"]) + ".wav",
             clean_istft.cpu(),
             hp.fs,
         )
         sf.write(
-            hp.OUT_DIR + "pred-" + str(meta_data['data_index']) + ".wav",
+            hp.OUT_DIR + "pred-" + str(meta_data["data_index"]) + ".wav",
             pred_istft.cpu(),
             hp.fs,
         )
 
         meta_data["SNR"] = meta_data["SNR"].item()
         meta_data["reverberation_rate"] = meta_data["reverberation_rate"].item()
-        meta_data["min_distance_to_noise"] = meta_data["min_distance_to_noise"].item()
-
+        meta_data["min_distance_to_noise"] = meta_data[
+            "min_distance_to_noise"
+        ].item()
 
         # Serializing json
         json_object = json.dumps(meta_data)
@@ -529,8 +523,6 @@ class LitNeuralNet(pl.LightningModule):
         # Writing to sample.json
         with open(f"out/meta_{meta_data['data_index']}", "w") as outfile:
             outfile.write(json_object)
-
-
 
         return prediction, clean_co, mix_co, h_new, c_new
 
