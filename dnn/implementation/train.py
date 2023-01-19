@@ -10,7 +10,6 @@ Description   : Master's Project "Source Separation for Robot Control"
 Topic         : Training module of the LSTM RNN Project
 """
 
-import dataloaders
 import hyperparameters as hp
 import pytorch_lightning as pl
 from data import HDF5DataModule
@@ -44,7 +43,7 @@ def main():
         hp.input_size, hp.hidden_size_1, hp.hidden_size_2, hp.output_size
     )
     print(model)
-    if hp.auto_lr_find is True or hp.auto_scale_batch_size is not False:
+    if hp.auto_lr_find is True or hp.auto_bs_find is not False:
         # Let lightning try to find ideal learning rate and batch size.
         trainer.tune(
             model,

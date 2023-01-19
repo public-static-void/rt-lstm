@@ -5,12 +5,11 @@
 Authors       : Vadim Titov
 Matr.-Nr.     : 6021356
 Created       : June 23rd, 2022
-Last modified : November 26th, 2022
+Last modified : January 19th, 2023
 Description   : Master's Project "Source Separation for Robot Control"
 Topic         : Prediction module of the LSTM RNN Project
 """
 
-import dataloaders
 import hyperparameters as hp
 import performance
 import pytorch_lightning as pl
@@ -46,7 +45,7 @@ def main():
 
     # Perform prediction.
     predictions = trainer.predict(
-        trained_model, dataloaders.test_dataloader(), None, None
+        trained_model, None, None
     )
     performance.__calculate_pesq__()
 

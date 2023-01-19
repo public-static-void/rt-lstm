@@ -128,7 +128,7 @@ class LitNeuralNet(pl.LightningModule):
         """
         n_batch, n_ch, n_f, n_t = x.shape
         # Init hidden and cell state of time LSTM to zeros if not provided.
-        hidden_state_size = hp.batch_size * n_f
+        hidden_state_size = self.batch_size * n_f
         if h_pre is None and c_pre is None:
             if self.t_bidirectional is True:
                 h_pre = torch.randn(2, hidden_state_size, self.hidden_size_2)
@@ -572,40 +572,40 @@ class LitNeuralNet(pl.LightningModule):
         return prediction, mix, h_out, c_out
 
 
-def train_dataloader(self):
-    """Initialize the data used in training."""
-    train_dataset = CustomDataset(type="training")
+    def train_dataloader(self):
+        """Initialize the data used in training."""
+        train_dataset = CustomDataset(type="training")
 
-    train_loader = torch.utils.data.DataLoader(
-        dataset=train_dataset,
-        batch_size=self.batch_size,
-        num_workers=hp.num_workers,
-        shuffle=True,
-    )
-    return train_loader
-
-
-def val_dataloader(self):
-    """Initialize the data used in validation."""
-    val_dataset = CustomDataset(type="validation")
-
-    val_loader = torch.utils.data.DataLoader(
-        dataset=val_dataset,
-        batch_size=self.batch_size,
-        num_workers=hp.num_workers,
-        shuffle=False,
-    )
-    return val_loader
+        train_loader = torch.utils.data.DataLoader(
+            dataset=train_dataset,
+            batch_size=self.batch_size,
+            num_workers=hp.num_workers,
+            shuffle=True,
+        )
+        return train_loader
 
 
-def predict_dataloader(self):
-    """Initialize the data used in prediction."""
-    test_dataset = CustomDataset(type="test")
+    def val_dataloader(self):
+        """Initialize the data used in validation."""
+        val_dataset = CustomDataset(type="validation")
 
-    test_loader = torch.utils.data.DataLoader(
-        dataset=test_dataset,
-        batch_size=self.batch_size,
-        num_workers=hp.num_workers,
-        shuffle=False,
-    )
-    return test_loader
+        val_loader = torch.utils.data.DataLoader(
+            dataset=val_dataset,
+            batch_size=self.batch_size,
+            num_workers=hp.num_workers,
+            shuffle=False,
+        )
+        return val_loader
+
+
+    def predict_dataloader(self):
+        """Initialize the data used in prediction."""
+        test_dataset = CustomDataset(type="test")
+
+        test_loader = torch.utils.data.DataLoader(
+            dataset=test_dataset,
+            batch_size=self.batch_size,
+            num_workers=hp.num_workers,
+            shuffle=False,
+        )
+        return test_loader
