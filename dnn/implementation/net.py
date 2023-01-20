@@ -5,7 +5,7 @@
 Authors       : Vadim Titov
 Matr.-Nr.     : 6021356
 Created       : June 23rd, 2022
-Last modified : january 19th, 2023
+Last modified : january 20th, 2023
 Description   : Master's Project "Source Separation for Robot Control"
 Topic         : Net module of the LSTM RNN Project
 """
@@ -113,52 +113,73 @@ class LitNeuralNet(pl.LightningModule):
         self.save_hyperparameters()
 
     def forward(
-        self, x: torch.Tensor, h_pre: torch.Tensor, c_pre: torch.Tensor
+        self, x: torch.Tensor, h_pre_t: torch.Tensor, c_pre_t: torch.Tensor,
+        h_pre_f: torch.Tensor, c_pre_f: torch.Tensor
     ) -> tuple:
         """Implements the forward step functionality.
 
         x : torch.Tensor
             Input of the net.
-        h_pre : torch.Tensor
-            Previous hidden state. Default: None.
-        c_pre : torch.Tensor
-            Previous cell state. Default: None.
+        h_pre_t : torch.Tensor
+            Previous t-LSTM hidden state. Default: None.
+        c_pre_t : torch.Tensor
+            Previous t-LSTM cell state. Default: None.
+        h_pre_f : torch.Tensor
+            Previous f-LSTM hidden state. Default: None.
+        c_pre_f : torch.Tensor
+            Previous f-LSTM cell state. Default: None.
 
         Returns
         -------
         tuple
-           Compressed mask, current hidden state, current cell state.
+           Compressed mask, current t-LSTM hidden state, current t-LSTM cell
+           state, current f-LSTM hidden state, current f-LST; cell state.
         """
         n_batch, n_ch, n_f, n_t = x.shape
         # Init hidden and cell state of time LSTM to zeros if not provided.
-        hidden_state_size = self.batch_size * n_f
-        if h_pre is None and c_pre is None:
+        t_hidden_state_size = self.batch_size * n_f
+        if h_pre_t is None and c_pre_t is None:
             if self.t_bidirectional is True:
-                h_pre = torch.randn(2, hidden_state_size, self.hidden_size_2)
-                c_pre = torch.randn(2, hidden_state_size, self.hidden_size_2)
+                h_pre_t = torch.randn(2, t_hidden_state_size, self.hidden_size_2)
+                c_pre_t = torch.randn(2, t_hidden_state_size, self.hidden_size_2)
             else:
-                h_pre = torch.randn(
-                    1, hidden_state_size, int(self.hidden_size_2)
+                h_pre_t = torch.randn(
+                    1, t_hidden_state_size, int(self.hidden_size_2)
                 )
-                c_pre = torch.randn(
-                    1, hidden_state_size, int(self.hidden_size_2)
+                c_pre_t = torch.randn(
+                    1, t_hidden_state_size, int(self.hidden_size_2)
                 )
-            h_pre = h_pre.to(hp.device)
-            c_pre = c_pre.to(hp.device)
+            h_pre_t = h_pre_t.to(hp.device)
+            c_pre_t = c_pre_t.to(hp.device)
+        f_hidden_state_size = self.batch_size * n_t
+        if h_pre_f is None and c_pre_f is None:
+            if self.f_bidirectional is True:
+                h_pre_f = torch.randn(2, f_hidden_state_size, self.hidden_size_1)
+                c_pre_f = torch.randn(2, f_hidden_state_size, self.hidden_size_1)
+            else:
+                h_pre_f = torch.randn(
+                    1, f_hidden_state_size, int(self.hidden_size_1)
+                )
+                c_pre_f = torch.randn(
+                    1, f_hidden_state_size, int(self.hidden_size_1)
+                )
+            h_pre_f = h_pre_f.to(hp.device)
+            c_pre_f = c_pre_f.to(hp.device)
         x = x.permute(0, 3, 2, 1)
         x = x.reshape(n_batch * n_t, n_f, n_ch)
-        x, _ = self.lstm1(x)
+        # x, _ = self.lstm1(x)
+        x, (h_new_f, c_new_f) = self.lstm1(x, (h_pre_f, c_pre_f))
         x = x.reshape(n_batch, n_t, n_f, self.lstm2_in)
         x = x.permute(0, 2, 1, 3)
         x = x.reshape(n_batch * n_f, n_t, self.lstm2_in)
-        x, (h_new, c_new) = self.lstm2(x, (h_pre, c_pre))
+        x, (h_new_t, c_new_t) = self.lstm2(x, (h_pre_t, c_pre_t))
         x = x.reshape(n_batch, n_f, n_t, self.dense_in)
         x = self.dense(x)
         x = x.permute(0, 3, 1, 2)
         x = self.tanh(x)
 
         # Output = compessed mask, new hidden and cell states.
-        return x, h_new, c_new
+        return x, h_new_t, c_new_t, h_new_f, c_new_f
 
     def comp_mse(self, pred: torch.Tensor, clean: torch.Tensor) -> float:
         """Helper function.
@@ -192,8 +213,10 @@ class LitNeuralNet(pl.LightningModule):
         self,
         batch: torch.Tensor,
         batch_idx: int,
-        h_pre: torch.Tensor = None,
-        c_pre: torch.Tensor = None,
+        h_pre_t: torch.Tensor = None,
+        c_pre_t: torch.Tensor = None,
+        h_pre_f: torch.Tensor = None,
+        c_pre_f: torch.Tensor = None,
     ) -> tuple:
         """Helper function.
 
@@ -204,16 +227,21 @@ class LitNeuralNet(pl.LightningModule):
             Input of the net.
         batch_idx : int
             Index of the current batch.
-        h_pre : torch.Tensor
-            Previous hidden state. Default: None.
-        c_pre : torch.Tensor
-            Previous cell state. Default: None.
+        h_pre_t : torch.Tensor
+            Previous t-LSTM hidden state. Default: None.
+        c_pre_t : torch.Tensor
+            Previous t-LSTM cell state. Default: None.
+        h_pre_f : torch.Tensor
+            Previous f-LSTM hidden state. Default: None.
+        c_pre_f : torch.Tensor
+            Previous f-LSTM cell state. Default: None.
 
         Returns
         -------
         tuple
-            Loss, clean, mix, prediction, current hidden state, current cell
-            state).
+            Loss, clean, mix, prediction, current t-LSTM hidden state, current
+            t-LSTM cell state, current f-LSTM hidden state, current f-LSTM cell
+            state.
         """
         torch.autograd.set_detect_anomaly(mode=hp.mode, check_nan=hp.check_nan)
 
@@ -224,13 +252,17 @@ class LitNeuralNet(pl.LightningModule):
         mix = mix.float()
 
         # Compute mask.
-        comp_mask, h_new, c_new = self(mix, h_pre, c_pre)
+        comp_mask, h_new_t, c_new_t, h_new_f, c_new_f = self(mix, h_pre_t,
+                                                             c_pre_t, h_pre_f,
+                                                             c_pre_f)
         decomp_mask = -torch.log((hp.K - comp_mask) / (hp.K + comp_mask))
         mix_co = torch.complex(mix[:, 0], mix[:, 3])
         clean_co = torch.complex(clean[:, 0], clean[:, 1])
         mask_co = torch.complex(decomp_mask[:, 0], decomp_mask[:, 1])
-        h_out = h_new.detach()
-        c_out = c_new.detach()
+        h_out_t = h_new_t.detach()
+        c_out_t = c_new_t.detach()
+        h_out_f = h_new_f.detach()
+        c_out_f = c_new_f.detach()
 
         # Apply mask to mixture (noisy) input signal.
         prediction = mask_co * mix_co
@@ -246,14 +278,16 @@ class LitNeuralNet(pl.LightningModule):
         # si_sdr = SI_SDR().to("cuda")
         # loss = -si_sdr(pred_istft, clean_istft)
 
-        return loss, clean_co, mix_co, prediction, h_out, c_out
+        return loss, clean_co, mix_co, prediction, h_out_t, c_out_t, h_out_f, c_out_f
 
     def training_step(
         self,
         batch: torch.Tensor,
         batch_idx: int,
-        h_pre: torch.Tensor = None,
-        c_pre: torch.Tensor = None,
+        h_pre_t: torch.Tensor = None,
+        c_pre_t: torch.Tensor = None,
+        h_pre_f: torch.Tensor = None,
+        c_pre_f: torch.Tensor = None,
     ) -> float:
         """Implements the training step functionality.
 
@@ -261,6 +295,14 @@ class LitNeuralNet(pl.LightningModule):
             Input of the net.
         batch_idx : int
             Index of the current batch.
+        h_pre_t : torch.Tensor
+            Previous t-LSTM hidden state. Default: None.
+        c_pre_t : torch.Tensor
+            Previous t-LSTM cell state. Default: None.
+        h_pre_f : torch.Tensor
+            Previous f-LSTM hidden state. Default: None.
+        c_pre_f : torch.Tensor
+            Previous f-LSTM cell state. Default: None.
 
         Returns
         -------
@@ -268,7 +310,8 @@ class LitNeuralNet(pl.LightningModule):
             Training loss.
         """
         # Forward pass.
-        loss, _, _, _, _, _ = self.common_step(batch, batch_idx, h_pre, c_pre)
+        loss, _, _, _, _, _, _, _ = self.common_step(batch, batch_idx, h_pre_t,
+                                               c_pre_t, h_pre_f, c_pre_f)
 
         # Logging.
         self.log(
@@ -285,8 +328,10 @@ class LitNeuralNet(pl.LightningModule):
         self,
         batch: torch.Tensor,
         batch_idx: int,
-        h_pre: torch.Tensor = None,
-        c_pre: torch.Tensor = None,
+        h_pre_t: torch.Tensor = None,
+        c_pre_t: torch.Tensor = None,
+        h_pre_f: torch.Tensor = None,
+        c_pre_f: torch.Tensor = None,
     ) -> float:
         """Implements the validation step functionality.
 
@@ -294,10 +339,14 @@ class LitNeuralNet(pl.LightningModule):
             Input of the net.
         batch_idx : int
             Index of the current batch.
-        h_pre : torch.Tensor
-            Previous hidden state. Default: None.
-        c_pre : torch.Tensor
-            Previous cell state. Default: None.
+        h_pre_t : torch.Tensor
+            Previous t-LSTM hidden state. Default: None.
+        c_pre_t : torch.Tensor
+            Previous t-LSTM cell state. Default: None.
+        h_pre_f : torch.Tensor
+            Previous f-LSTM hidden state. Default: None.
+        c_pre_f : torch.Tensor
+            Previous f-LSTM cell state. Default: None.
 
         Returns
         -------
@@ -305,8 +354,8 @@ class LitNeuralNet(pl.LightningModule):
             Training loss.
         """
         # Forward pass.
-        loss, clean_co, mix_co, prediction, _, _ = self.common_step(
-            batch, batch_idx, h_pre, c_pre
+        loss, clean_co, mix_co, prediction, _, _, _, _ = self.common_step(
+            batch, batch_idx, h_pre_t, c_pre_t, h_pre_f, c_pre_f
         )
 
         # Logging.
@@ -455,8 +504,10 @@ class LitNeuralNet(pl.LightningModule):
         self,
         batch: torch.Tensor,
         batch_idx: int,
-        h_pre: torch.Tensor = None,
-        c_pre: torch.Tensor = None,
+        h_pre_t: torch.Tensor = None,
+        c_pre_t: torch.Tensor = None,
+        h_pre_f: torch.Tensor = None,
+        c_pre_f: torch.Tensor = None,
     ) -> tuple:
         """Implements the prediction step functionality.
 
@@ -464,15 +515,20 @@ class LitNeuralNet(pl.LightningModule):
             Input of the net.
         batch_idx : int
             Index of the current batch.
-        h_pre : torch.Tensor
-            Previous hidden state. Default: None.
-        c_pre : torch.Tensor
-            Previous cell state. Default: None.
+        h_pre_t : torch.Tensor
+            Previous t-LSTM hidden state. Default: None.
+        c_pre_t : torch.Tensor
+            Previous t-LSTM cell state. Default: None.
+        h_pre_f : torch.Tensor
+            Previous f-LSTM hidden state. Default: None.
+        c_pre_f : torch.Tensor
+            Previous f-LSTM cell state. Default: None.
 
         Returns
         -------
         tuple
-            Prediction, clean, mix, current hidden state, current cell state).
+            Prediction, clean, mix, current t-LSTM hidden state, current t-LSTM
+            cell state, current f-LSTM hidden state, current f-LSTM cell state.
         """
 
         meta_data = batch[-1]
@@ -481,8 +537,8 @@ class LitNeuralNet(pl.LightningModule):
         batch = batch[:-1]
         print(batch[0].shape)
 
-        _, clean_co, mix_co, prediction, h_new, c_new = self.common_step(
-            batch, batch_idx, h_pre, c_pre
+        _, clean_co, mix_co, prediction, h_new_t, c_new_t, h_new_f, c_new_f = self.common_step(
+            batch, batch_idx, h_pre_t, c_pre_t, h_pre_f, c_pre_f
         )
 
         # Generate sound files for mix, clean and prediction.
@@ -531,13 +587,16 @@ class LitNeuralNet(pl.LightningModule):
         with open(f"out/meta_{meta_data['data_index']}", "w") as outfile:
             outfile.write(json_object)
 
-        return prediction, clean_co, mix_co, h_new, c_new
+        return prediction, clean_co, mix_co, h_new_t, c_new_t, h_new_f, c_new_f
+
 
     def predict_rt(
         self,
         batch: torch.Tensor,
-        h_pre: torch.Tensor = None,
-        c_pre: torch.Tensor = None,
+        h_pre_t: torch.Tensor = None,
+        c_pre_t: torch.Tensor = None,
+        h_pre_f: torch.Tensor = None,
+        c_pre_f: torch.Tensor = None,
     ) -> tuple:
         """Implements the prediction step functionality.
 
@@ -545,15 +604,20 @@ class LitNeuralNet(pl.LightningModule):
             Input of the net.
         batch_idx : int
             Index of the current batch.
-        h_pre : torch.Tensor
-            Previous hidden state. Default: None.
-        c_pre : torch.Tensor
-            Previous cell state. Default: None.
+        h_pre_t : torch.Tensor
+            Previous t-LSTM hidden state. Default: None.
+        c_pre_t : torch.Tensor
+            Previous t-LSMT cell state. Default: None.
+        h_pre_f : torch.Tensor
+            Previous f-LSTM hidden state. Default: None.
+        c_pre_f : torch.Tensor
+            Previous f-LSMT cell state. Default: None.
 
         Returns
         -------
         tuple
-            Prediction, mix, current hidden state, current cell state).
+            Prediction, mix, current t-LSTM hidden state, current t-LSTM cell
+            state, current f-LSTM hidden state, current f-LSTM cell state.
         """
 
         # Unpack and cast input data for further processing.
@@ -562,17 +626,22 @@ class LitNeuralNet(pl.LightningModule):
         mix = mix.to(hp.device)
 
         # Compute mask.
-        comp_mask, h_new, c_new = self(mix, h_pre, c_pre)
+        comp_mask, h_new_t, c_new_t, h_new_f, c_new_f = self(mix, h_pre_t,
+                                                            c_pre_t, h_pre_f,
+                                                            c_pre_f)
         decomp_mask = -torch.log((hp.K - comp_mask) / (hp.K + comp_mask))
         mix_co = torch.complex(mix[:, 0], mix[:, 3])
         mask_co = torch.complex(decomp_mask[:, 0], decomp_mask[:, 1])
-        h_out = h_new.detach()
-        c_out = c_new.detach()
+        h_out_t = h_new_t.detach()
+        c_out_t = c_new_t.detach()
+        h_out_f = h_new_f.detach()
+        c_out_f = c_new_f.detach()
 
         # Apply mask to mixture (noisy) input signal.
         prediction = mask_co * mix_co
 
-        return prediction, mix, h_out, c_out
+        return prediction, mix, h_out_t, c_out_t, h_out_f, c_out_f
+
 
 
     def train_dataloader(self):

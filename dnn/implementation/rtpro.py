@@ -5,7 +5,7 @@
 Authors       : Vadim Titov, Henning Möllers
 Matr.-Nr.     : 6021356, ...
 Created       : January 19th, 2023
-Last modified : January 19th, 2023
+Last modified : January 20th, 2023
 Description   : Master's Project "Source Separation for Robot Control"
 Topic         : Real-time audio processing module of the LSTM RNN Project
 """
@@ -41,6 +41,8 @@ trained_model.freeze()
 # Init hidden and cell state of time-dimension LSTM.
 h_t = None
 c_t = None
+h_f = None
+c_f = None
 
 # #############################
 # Configure DSP settings
@@ -99,7 +101,9 @@ window = get_periodic_hann(FFT_LEN)
 
 
 def net_processing(
-    fft_stack: torch.Tensor, h_t: torch.Tensor, c_t: torch.Tensor
+    fft_stack: torch.Tensor, h_t: torch.Tensor, c_t: torch.Tensor,
+    h_f: torch.Tensor, c_f: torch.Tensor
+
 ) -> tuple:
     """Helper function.
 
@@ -113,11 +117,14 @@ def net_processing(
 
     c_t : torch.Tensor
 
+    h_f : torch.Tensor
+
+    c_f : torch.Tensor
 
     Returns
     -------
     tuple
-        net_output, h_t, c_t
+        net_output, h_t, c_t, h_f, c_f
 
     """
     # Split imaginary and real parts of complex fft.
@@ -126,11 +133,11 @@ def net_processing(
     # Add dummy batch and time dimensions.
     net_input = fft_split[None, :, :, None]
     # Net processing:
-    net_output, _, h_t, c_t = trained_model.predict_rt(
-        batch=net_input, h_pre=h_t, c_pre=c_t
+    net_output, _, h_t, c_t, h_f, c_f = trained_model.predict_rt(
+        batch=net_input, h_pre_t=h_t, c_pre_t=c_t, h_pre_f=h_f, c_pre_f=c_f,
     )
     net_output = net_output[0, :, 0]
-    return net_output, h_t, c_t
+    return net_output, h_t, c_t, h_f, c_f
 
 
 def block_processing(input_buffer):
@@ -138,6 +145,8 @@ def block_processing(input_buffer):
     global overlap_add_buffer
     global h_t
     global c_t
+    global h_f
+    global c_f
 
     # Compute fft
     fft_buffer[:, :-FFT_SHIFT] = fft_buffer[:, FFT_SHIFT:]
@@ -147,7 +156,8 @@ def block_processing(input_buffer):
     )
 
     # Perform speech enhancement in the frequency domain
-    signal, h_t, c_t = net_processing(torch.from_numpy(fft_data), h_t, c_t)
+    signal, h_t, c_t, h_f, c_f = net_processing(torch.from_numpy(fft_data), h_t,
+                                                c_t, h_f, c_f)
     signal = signal.to("cpu")
     # Overlap-add
     overlap_add_buffer += (
