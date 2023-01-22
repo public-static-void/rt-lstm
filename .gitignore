@@ -527,4 +527,4 @@ node_modules/
 requirements/base.txt
 
 # wav
-.wav
+*.wav
