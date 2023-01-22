@@ -5,7 +5,7 @@
 Authors       : Vadim Titov
 Matr.-Nr.     : 6021356
 Created       : June 23rd, 2022
-Last modified : January 19th, 2023
+Last modified : January 22th, 2023
 Description   : Master's Project "Source Separation for Robot Control"
 Topic         : Hyperparameters module of the LSTM RNN Project
 """
@@ -30,8 +30,8 @@ OUT_DIR = "out/"
 # STFT settings.
 fs = 16000
 stft_length = 512
-stft_shift = 256
-# stft_shift = 128
+# stft_shift = 256
+stft_shift = 128
 fftbins = True
 window = torch.from_numpy(np.sqrt(get_window("hann", stft_length, fftbins))).to(
     device
@@ -45,9 +45,9 @@ input_size = 6  # 3 microphone channels * 2 (Re + Im).
 hidden_size_1 = 256
 hidden_size_2 = 128
 output_size = 2  # 1 channel * 2 (Re + Im).
-t_bidirectional = True
-f_bidirectional = False
-batch_size = 3
+t_bidirectional = False
+f_bidirectional = True
+batch_size = 2
 batch_first = True
 num_epochs = 100
 learning_rate = 0.0005
@@ -73,10 +73,32 @@ log_samples = [0, 1, 2]
 # CHECKPOINT_DIR = "/informatik1/students/home/xmannwei/Beamformer/mp-2022/mp-2022/dnn/implementation/checkpoints/"
 # CHECKPOINT_DIR = "checkpoints/"
 # CHECKPOINT_DIR = None
-# checkpoint_name = "epoch=1-step=6000.ckpt" #  bi-directional
-# checkpoint_name = "epoch=90-step=273000.ckpt" #  uni-directional
-# trained_model_path = "checkpoints/epoch=65-step=132000.ckpt" #  uni-?
-trained_model_path = "checkpoints/epoch=90-step=273000.ckpt"  # uni-t rt
+
+if t_bidirectional is True and f_bidirectional is True and stft_shift == 256:
+    trained_model_path = "checkpoints/tt256.ckpt"
+    checkpoint_name = "tt256.ckpt"
+if t_bidirectional is True and f_bidirectional is False and stft_shift == 256:
+    trained_model_path = "checkpoints/tf256.ckpt"
+    checkpoint_name = "tf256.ckpt"
+if t_bidirectional is False and f_bidirectional is True and stft_shift == 256:
+    trained_model_path = "checkpoints/ft256.ckpt"
+    checkpoint_name = "ft256.ckpt"
+if t_bidirectional is False and f_bidirectional is False and stft_shift == 256:
+    trained_model_path = "checkpoints/ff256.ckpt"
+    checkpoint_name = "ff256.ckpt"
+if t_bidirectional is True and f_bidirectional is True and stft_shift == 128:
+    trained_model_path = "checkpoints/tt128.ckpt"
+    checkpoint_name = "tt128.ckpt"
+if t_bidirectional is True and f_bidirectional is False and stft_shift == 128:
+    trained_model_path = "checkpoints/tf128.ckpt"
+    checkpoint_name = "tf128.ckpt"
+if t_bidirectional is False and f_bidirectional is True and stft_shift == 128:
+    trained_model_path = "checkpoints/ft128.ckpt"
+    checkpoint_name = "ft128.ckpt"
+if t_bidirectional is False and f_bidirectional is False and stft_shift == 128:
+    trained_model_path = "checkpoints/ff128.ckpt"
+    checkpoint_name = "ff128.ckpt"
+
 enable_checkpointing = True
 
 #############
@@ -102,9 +124,9 @@ checkpointing = ModelCheckpoint(
 # prediction loop using 1 batch(es).
 is_test_run = False
 # Limit batches for debug training/prediction runs.
-limit_train_batches = 1.0
-limit_val_batches = 1.0
-limit_predict_batches = 1.0
+limit_train_batches = 0.99
+limit_val_batches = 0.99
+limit_predict_batches = 0.99
 overfit_batches = 0.0
 # Anomaly detection
 mode = True
