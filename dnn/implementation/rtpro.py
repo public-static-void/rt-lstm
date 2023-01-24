@@ -28,13 +28,17 @@ from dsp_utils import (
 from net import LitNeuralNet
 from scipy import signal
 
-# #############################
-# DNN model configuration
-# #############################
+# NOTE: Set qjackctl to 48000 fs, 384 frames and 4 buffer periods.
+# NOTE: Make sure batch size is set to 1 in hyperparameters.
+
+###########################
+# DNN model configuration #
+###########################
 
 # Load pretrained model from checkpoint.
 trained_model = LitNeuralNet.load_from_checkpoint(
-    checkpoint_path=hp.trained_model_path, batch_size=1,
+    checkpoint_path=hp.trained_model_path,
+    batch_size=1,
 ).to(hp.device)
 trained_model.eval()
 trained_model.freeze()
@@ -44,9 +48,9 @@ c_t = None
 h_f = None
 c_f = None
 
-# #############################
-# Configure DSP settings
-# #############################
+##########################
+# Configure DSP settings #
+##########################
 
 INPUT_FS = 48000
 PROC_FS = 16000
@@ -61,9 +65,9 @@ ds_factor = int(INPUT_FS / PROC_FS)
 NUM_IN_CHANNELS = 3
 NUM_OUT_CHANNELS = 2
 
-# #############################
-# Set-up jack client
-# #############################
+######################
+# Set-up jack client #
+######################
 
 argv = iter(sys.argv)
 # By default, use script name without extension as client name:
@@ -82,9 +86,9 @@ if client.status.server_started:
 if client.status.name_not_unique:
     print(f"unique name {client.name!r} assigned")
 
-# ###############################
-# Global variables
-# ###############################
+####################
+# Global variables #
+####################
 
 block_in_buffer = np.zeros((NUM_IN_CHANNELS, BLOCK_LEN))
 block_out_buffer = np.zeros(BLOCK_LEN)
@@ -95,15 +99,17 @@ filter_states_lp_down_sample = np.zeros((NUM_IN_CHANNELS, LP_ORDER))
 filter_states_lp_up_sample = np.zeros(LP_ORDER)
 window = get_periodic_hann(FFT_LEN)
 
-# ###############################
-#  Processing
-# ###############################
+###############
+#  Processing #
+###############
 
 
 def net_processing(
-    fft_stack: torch.Tensor, h_t: torch.Tensor, c_t: torch.Tensor,
-    h_f: torch.Tensor, c_f: torch.Tensor
-
+    fft_stack: torch.Tensor,
+    h_t: torch.Tensor,
+    c_t: torch.Tensor,
+    h_f: torch.Tensor,
+    c_f: torch.Tensor,
 ) -> tuple:
     """Helper function.
 
@@ -134,7 +140,11 @@ def net_processing(
     net_input = fft_split[None, :, :, None]
     # Net processing:
     net_output, _, h_t, c_t, h_f, c_f = trained_model.predict_rt(
-        batch=net_input, h_pre_t=h_t, c_pre_t=c_t, h_pre_f=h_f, c_pre_f=c_f,
+        batch=net_input,
+        h_pre_t=h_t,
+        c_pre_t=c_t,
+        h_pre_f=h_f,
+        c_pre_f=c_f,
     )
     net_output = net_output[0, :, 0]
     return net_output, h_t, c_t, h_f, c_f
@@ -156,8 +166,9 @@ def block_processing(input_buffer):
     )
 
     # Perform speech enhancement in the frequency domain
-    signal, h_t, c_t, h_f, c_f = net_processing(torch.from_numpy(fft_data), h_t,
-                                                c_t, h_f, c_f)
+    signal, h_t, c_t, h_f, c_f = net_processing(
+        torch.from_numpy(fft_data), h_t, c_t, h_f, c_f
+    )
     signal = signal.to("cpu")
     # Overlap-add
     overlap_add_buffer += (
