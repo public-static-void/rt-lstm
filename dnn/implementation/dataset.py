@@ -24,6 +24,16 @@ class CustomDataset(Dataset):
 
     Implements a custom dataset class by inheriting from Pytorch Dataset
     module.
+
+    Attributes
+    ----------
+    type : str
+    stft_length : int
+    stft_shift : int
+    sample_rate : int
+    data_clean : np.ndarray
+    data_noise : np.ndarray
+    data_meta : np.ndarray
     """
 
     def __init__(
@@ -79,12 +89,6 @@ class CustomDataset(Dataset):
         """
         return len(self.data_clean)
 
-        """Function to
-
-        Returns: NDArray[Float64]
-
-        """
-
     def __cut__(
         self, signal: np.ndarray, samples_to_take: int, start_sample: int
     ) -> np.ndarray:
@@ -97,7 +101,7 @@ class CustomDataset(Dataset):
         signal : np.ndarray
             Input signal.
         samples_to_take : int
-            Lenght of the result in samples.
+            Length of the result in samples.
         start_sample : int
             Position from where to start cutting.
 

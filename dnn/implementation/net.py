@@ -27,7 +27,25 @@ class LitNeuralNet(pl.LightningModule):
     """Main class of this module.
 
     Implements an LSTM deep neural net by inheriting from Pytorch Lightning Net
-    module."""
+    module.
+
+    Attributes
+    ----------
+    batch_size: int
+    input_size: int
+    hidden_size_1: int
+    hidden_size_2: int
+    output_size: int
+    learning_rate: float
+    t_bidirectional: bool
+    f_bidirectional: bool
+    lstm1_in: int
+    lstm1_out: int
+    lstm1: nn.LSTM
+    lstm2: nn.LSTM
+    dense: nn.Linear
+    tanh: nn.Tanh
+    """
 
     def __init__(
         self,
@@ -43,24 +61,24 @@ class LitNeuralNet(pl.LightningModule):
 
         The net architecture is as follows:
 
-        [b, c, f, t]   -> transform -> [b*t, f, c]
-        [b*t, f, c]    -> lstm1     -> [b*t, f, hs1]
-        [b*t, f, hs1]  -> transform -> [b*f, t, hs1]
-        [b*f, t, hs1]  -> lstm2     -> [b*f, t, hs2]
-        [b*f, t, hs2]  -> transform -> [b, f, t, hs3]
-        [b, f, t, c]   -> dense     -> [b, f, t, c]
+        [b, c, f, t] -> transform -> [b*t, f, c]
+        [b*t, f, c] -> lstm1 -> [b*t, f, hs1]
+        [b*t, f, hs1] -> transform -> [b*f, t, hs1]
+        [b*f, t, hs1] -> lstm2 -> [b*f, t, hs2]
+        [b*f, t, hs2] -> transform -> [b, f, t, hs3]
+        [b, f, t, c] -> dense -> [b, f, t, c]
         [b, t, f, hs3] -> transform -> [b, f, t, hs3]
-        [b, t, f, c]   -> tanh      -> [b, t, f, 1]
+        [b, t, f, c] -> tanh -> [b, t, f, 1]
 
-        input_size : int
+        input_size: int
             Size of the net's input layer.
-        hidden_size_1 : int
+        hidden_size_1: int
             Size of the first LSTM hidden layer's output.
-        hidden_size_2 : int
+        hidden_size_2: int
             Size of the second LSTM hidden layer's output.
-        output_size : int
+        output_size: int
             Size of the net's output layer.
-        batch_size : int
+        batch_size: int
             Size of the batch dimension.
         """
         super(LitNeuralNet, self).__init__()
@@ -122,15 +140,15 @@ class LitNeuralNet(pl.LightningModule):
     ) -> tuple:
         """Implements the forward step functionality.
 
-        x : torch.Tensor
+        x: torch.Tensor
             Input of the net.
-        h_pre_t : torch.Tensor
+        h_pre_t: torch.Tensor
             Previous t-LSTM hidden state. Default: None.
-        c_pre_t : torch.Tensor
+        c_pre_t: torch.Tensor
             Previous t-LSTM cell state. Default: None.
-        h_pre_f : torch.Tensor
+        h_pre_f: torch.Tensor
             Previous f-LSTM hidden state. Default: None.
-        c_pre_f : torch.Tensor
+        c_pre_f: torch.Tensor
             Previous f-LSTM cell state. Default: None.
 
         Returns
@@ -179,7 +197,6 @@ class LitNeuralNet(pl.LightningModule):
             c_pre_f = c_pre_f.to(hp.device)
         x = x.permute(0, 3, 2, 1)
         x = x.reshape(n_batch * n_t, n_f, n_ch)
-        # x, _ = self.lstm1(x)
         x, (h_new_f, c_new_f) = self.lstm1(x, (h_pre_f, c_pre_f))
         x = x.reshape(n_batch, n_t, n_f, self.lstm2_in)
         x = x.permute(0, 2, 1, 3)
@@ -196,11 +213,11 @@ class LitNeuralNet(pl.LightningModule):
     def comp_mse(self, pred: torch.Tensor, clean: torch.Tensor) -> float:
         """Helper function.
 
-        Computes mean squared error (MSE) for complex valued tensors.
+        Computes mean squared error(MSE) for complex valued tensors.
 
-        pred : torch.Tensor
+        pred: torch.Tensor
             Predicted signal tensor.
-        clean : torch.Tensor
+        clean: torch.Tensor
             Clean signal tensor.
 
         Returns
@@ -211,13 +228,16 @@ class LitNeuralNet(pl.LightningModule):
         loss = torch.mean(torch.square(torch.abs(pred - clean)))
         return loss
 
-    def configure_optimizers(self):
+    def configure_optimizers(self) -> torch.optim.Adam:
         """Helper function.
 
         Configured the function used to update parameters.
+
+        Returns
+        -------
+        torch.optim.Adam
+            Adam optimizer.
         """
-        # RMSProp optimizer.
-        # return torch.optim.RMSprop(self.parameters(), lr=self.learning_rate)
         # Adam optimizer.
         return torch.optim.Adam(self.parameters(), lr=self.learning_rate)
 
@@ -235,17 +255,17 @@ class LitNeuralNet(pl.LightningModule):
         Implements functionality used in training, validation and prediction
         step functions of this class.
 
-        batch : torch.Tensor
+        batch: torch.Tensor
             Input of the net.
-        batch_idx : int
+        batch_idx: int
             Index of the current batch.
-        h_pre_t : torch.Tensor
+        h_pre_t: torch.Tensor
             Previous t-LSTM hidden state. Default: None.
-        c_pre_t : torch.Tensor
+        c_pre_t: torch.Tensor
             Previous t-LSTM cell state. Default: None.
-        h_pre_f : torch.Tensor
+        h_pre_f: torch.Tensor
             Previous f-LSTM hidden state. Default: None.
-        c_pre_f : torch.Tensor
+        c_pre_f: torch.Tensor
             Previous f-LSTM cell state. Default: None.
 
         Returns
@@ -282,14 +302,6 @@ class LitNeuralNet(pl.LightningModule):
         # Compute loss.
         loss = self.comp_mse(prediction, clean_co)
 
-        # TODO: alternative loss function.
-        # clean_istft = torch.istft(
-        #     clean_co, hp.stft_length, hp.stft_shift, window=hp.window)
-        # pred_istft = torch.istft(
-        #     prediction, hp.stft_length, hp.stft_shift, window=hp.window)
-        # si_sdr = SI_SDR().to("cuda")
-        # loss = -si_sdr(pred_istft, clean_istft)
-
         return (
             loss,
             clean_co,
@@ -312,17 +324,17 @@ class LitNeuralNet(pl.LightningModule):
     ) -> float:
         """Implements the training step functionality.
 
-        batch : torch.Tensor
+        batch: torch.Tensor
             Input of the net.
-        batch_idx : int
+        batch_idx: int
             Index of the current batch.
-        h_pre_t : torch.Tensor
+        h_pre_t: torch.Tensor
             Previous t-LSTM hidden state. Default: None.
-        c_pre_t : torch.Tensor
+        c_pre_t: torch.Tensor
             Previous t-LSTM cell state. Default: None.
-        h_pre_f : torch.Tensor
+        h_pre_f: torch.Tensor
             Previous f-LSTM hidden state. Default: None.
-        c_pre_f : torch.Tensor
+        c_pre_f: torch.Tensor
             Previous f-LSTM cell state. Default: None.
 
         Returns
@@ -357,17 +369,17 @@ class LitNeuralNet(pl.LightningModule):
     ) -> float:
         """Implements the validation step functionality.
 
-        batch : torch.Tensor
+        batch: torch.Tensor
             Input of the net.
-        batch_idx : int
+        batch_idx: int
             Index of the current batch.
-        h_pre_t : torch.Tensor
+        h_pre_t: torch.Tensor
             Previous t-LSTM hidden state. Default: None.
-        c_pre_t : torch.Tensor
+        c_pre_t: torch.Tensor
             Previous t-LSTM cell state. Default: None.
-        h_pre_f : torch.Tensor
+        h_pre_f: torch.Tensor
             Previous f-LSTM hidden state. Default: None.
-        c_pre_f : torch.Tensor
+        c_pre_f: torch.Tensor
             Previous f-LSTM cell state. Default: None.
 
         Returns
@@ -533,17 +545,17 @@ class LitNeuralNet(pl.LightningModule):
     ) -> tuple:
         """Implements the prediction step functionality.
 
-        batch : torch.Tensor
+        batch: torch.Tensor
             Input of the net.
-        batch_idx : int
+        batch_idx: int
             Index of the current batch.
-        h_pre_t : torch.Tensor
+        h_pre_t: torch.Tensor
             Previous t-LSTM hidden state. Default: None.
-        c_pre_t : torch.Tensor
+        c_pre_t: torch.Tensor
             Previous t-LSTM cell state. Default: None.
-        h_pre_f : torch.Tensor
+        h_pre_f: torch.Tensor
             Previous f-LSTM hidden state. Default: None.
-        c_pre_f : torch.Tensor
+        c_pre_f: torch.Tensor
             Previous f-LSTM cell state. Default: None.
 
         Returns
@@ -630,17 +642,17 @@ class LitNeuralNet(pl.LightningModule):
     ) -> tuple:
         """Implements the prediction step functionality.
 
-        batch : torch.Tensor
+        batch: torch.Tensor
             Input of the net.
-        batch_idx : int
+        batch_idx: int
             Index of the current batch.
-        h_pre_t : torch.Tensor
+        h_pre_t: torch.Tensor
             Previous t-LSTM hidden state. Default: None.
-        c_pre_t : torch.Tensor
+        c_pre_t: torch.Tensor
             Previous t-LSMT cell state. Default: None.
-        h_pre_f : torch.Tensor
+        h_pre_f: torch.Tensor
             Previous f-LSTM hidden state. Default: None.
-        c_pre_f : torch.Tensor
+        c_pre_f: torch.Tensor
             Previous f-LSMT cell state. Default: None.
 
         Returns
@@ -672,8 +684,14 @@ class LitNeuralNet(pl.LightningModule):
 
         return prediction, mix, h_out_t, c_out_t, h_out_f, c_out_f
 
-    def train_dataloader(self):
-        """Initialize the data used in training."""
+    def train_dataloader(self) -> torch.utils.data.DataLoader:
+        """Initialize the data used in training.
+
+        Returns
+        -------
+        torch.utils.data.DataLoader
+            Training dataloader.
+        """
         train_dataset = CustomDataset(
             type="training",
             stft_length=hp.stft_length,
@@ -688,8 +706,14 @@ class LitNeuralNet(pl.LightningModule):
         )
         return train_loader
 
-    def val_dataloader(self):
-        """Initialize the data used in validation."""
+    def val_dataloader(self) -> torch.utils.data.DataLoader:
+        """Initialize the data used in validation.
+
+        Returns
+        -------
+        torch.utils.data.DataLoader
+            Validation dataloader.
+        """
         val_dataset = CustomDataset(
             type="validation",
             stft_length=hp.stft_length,
@@ -704,8 +728,13 @@ class LitNeuralNet(pl.LightningModule):
         )
         return val_loader
 
-    def predict_dataloader(self):
-        """Initialize the data used in prediction."""
+    def predict_dataloader(self) -> torch.utils.data.DataLoader:
+        """Initialize the data used in prediction.
+        Returns
+        -------
+        torch.utils.data.DataLoader
+            Prediction dataloader.
+        """
         test_dataset = CustomDataset(
             type="test", stft_length=hp.stft_length, stft_shift=hp.stft_shift
         )
