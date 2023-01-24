@@ -5,7 +5,7 @@
 Authors       : Vadim Titov
 Matr.-Nr.     : 6021356
 Created       : June 23rd, 2022
-Last modified : january 20th, 2023
+Last modified : January 24th, 2023
 Description   : Master's Project "Source Separation for Robot Control"
 Topic         : Net module of the LSTM RNN Project
 """
@@ -113,8 +113,12 @@ class LitNeuralNet(pl.LightningModule):
         self.save_hyperparameters()
 
     def forward(
-        self, x: torch.Tensor, h_pre_t: torch.Tensor, c_pre_t: torch.Tensor,
-        h_pre_f: torch.Tensor, c_pre_f: torch.Tensor
+        self,
+        x: torch.Tensor,
+        h_pre_t: torch.Tensor,
+        c_pre_t: torch.Tensor,
+        h_pre_f: torch.Tensor,
+        c_pre_f: torch.Tensor,
     ) -> tuple:
         """Implements the forward step functionality.
 
@@ -140,8 +144,12 @@ class LitNeuralNet(pl.LightningModule):
         t_hidden_state_size = self.batch_size * n_f
         if h_pre_t is None and c_pre_t is None:
             if self.t_bidirectional is True:
-                h_pre_t = torch.randn(2, t_hidden_state_size, self.hidden_size_2)
-                c_pre_t = torch.randn(2, t_hidden_state_size, self.hidden_size_2)
+                h_pre_t = torch.randn(
+                    2, t_hidden_state_size, self.hidden_size_2
+                )
+                c_pre_t = torch.randn(
+                    2, t_hidden_state_size, self.hidden_size_2
+                )
             else:
                 h_pre_t = torch.randn(
                     1, t_hidden_state_size, int(self.hidden_size_2)
@@ -154,8 +162,12 @@ class LitNeuralNet(pl.LightningModule):
         f_hidden_state_size = self.batch_size * n_t
         if h_pre_f is None and c_pre_f is None:
             if self.f_bidirectional is True:
-                h_pre_f = torch.randn(2, f_hidden_state_size, self.hidden_size_1)
-                c_pre_f = torch.randn(2, f_hidden_state_size, self.hidden_size_1)
+                h_pre_f = torch.randn(
+                    2, f_hidden_state_size, self.hidden_size_1
+                )
+                c_pre_f = torch.randn(
+                    2, f_hidden_state_size, self.hidden_size_1
+                )
             else:
                 h_pre_f = torch.randn(
                     1, f_hidden_state_size, int(self.hidden_size_1)
@@ -252,9 +264,9 @@ class LitNeuralNet(pl.LightningModule):
         mix = mix.float()
 
         # Compute mask.
-        comp_mask, h_new_t, c_new_t, h_new_f, c_new_f = self(mix, h_pre_t,
-                                                             c_pre_t, h_pre_f,
-                                                             c_pre_f)
+        comp_mask, h_new_t, c_new_t, h_new_f, c_new_f = self(
+            mix, h_pre_t, c_pre_t, h_pre_f, c_pre_f
+        )
         decomp_mask = -torch.log((hp.K - comp_mask) / (hp.K + comp_mask))
         mix_co = torch.complex(mix[:, 0], mix[:, 3])
         clean_co = torch.complex(clean[:, 0], clean[:, 1])
@@ -278,7 +290,16 @@ class LitNeuralNet(pl.LightningModule):
         # si_sdr = SI_SDR().to("cuda")
         # loss = -si_sdr(pred_istft, clean_istft)
 
-        return loss, clean_co, mix_co, prediction, h_out_t, c_out_t, h_out_f, c_out_f
+        return (
+            loss,
+            clean_co,
+            mix_co,
+            prediction,
+            h_out_t,
+            c_out_t,
+            h_out_f,
+            c_out_f,
+        )
 
     def training_step(
         self,
@@ -310,8 +331,9 @@ class LitNeuralNet(pl.LightningModule):
             Training loss.
         """
         # Forward pass.
-        loss, _, _, _, _, _, _, _ = self.common_step(batch, batch_idx, h_pre_t,
-                                               c_pre_t, h_pre_f, c_pre_f)
+        loss, _, _, _, _, _, _, _ = self.common_step(
+            batch, batch_idx, h_pre_t, c_pre_t, h_pre_f, c_pre_f
+        )
 
         # Logging.
         self.log(
@@ -537,7 +559,16 @@ class LitNeuralNet(pl.LightningModule):
         batch = batch[:-1]
         print(batch[0].shape)
 
-        _, clean_co, mix_co, prediction, h_new_t, c_new_t, h_new_f, c_new_f = self.common_step(
+        (
+            _,
+            clean_co,
+            mix_co,
+            prediction,
+            h_new_t,
+            c_new_t,
+            h_new_f,
+            c_new_f,
+        ) = self.common_step(
             batch, batch_idx, h_pre_t, c_pre_t, h_pre_f, c_pre_f
         )
 
@@ -589,7 +620,6 @@ class LitNeuralNet(pl.LightningModule):
 
         return prediction, clean_co, mix_co, h_new_t, c_new_t, h_new_f, c_new_f
 
-
     def predict_rt(
         self,
         batch: torch.Tensor,
@@ -626,9 +656,9 @@ class LitNeuralNet(pl.LightningModule):
         mix = mix.to(hp.device)
 
         # Compute mask.
-        comp_mask, h_new_t, c_new_t, h_new_f, c_new_f = self(mix, h_pre_t,
-                                                            c_pre_t, h_pre_f,
-                                                            c_pre_f)
+        comp_mask, h_new_t, c_new_t, h_new_f, c_new_f = self(
+            mix, h_pre_t, c_pre_t, h_pre_f, c_pre_f
+        )
         decomp_mask = -torch.log((hp.K - comp_mask) / (hp.K + comp_mask))
         mix_co = torch.complex(mix[:, 0], mix[:, 3])
         mask_co = torch.complex(decomp_mask[:, 0], decomp_mask[:, 1])
@@ -642,11 +672,13 @@ class LitNeuralNet(pl.LightningModule):
 
         return prediction, mix, h_out_t, c_out_t, h_out_f, c_out_f
 
-
-
     def train_dataloader(self):
         """Initialize the data used in training."""
-        train_dataset = CustomDataset(type="training")
+        train_dataset = CustomDataset(
+            type="training",
+            stft_length=hp.stft_length,
+            stft_shift=hp.stft_shift,
+        )
 
         train_loader = torch.utils.data.DataLoader(
             dataset=train_dataset,
@@ -656,10 +688,13 @@ class LitNeuralNet(pl.LightningModule):
         )
         return train_loader
 
-
     def val_dataloader(self):
         """Initialize the data used in validation."""
-        val_dataset = CustomDataset(type="validation")
+        val_dataset = CustomDataset(
+            type="validation",
+            stft_length=hp.stft_length,
+            stft_shift=hp.stft_shift,
+        )
 
         val_loader = torch.utils.data.DataLoader(
             dataset=val_dataset,
@@ -669,10 +704,11 @@ class LitNeuralNet(pl.LightningModule):
         )
         return val_loader
 
-
     def predict_dataloader(self):
         """Initialize the data used in prediction."""
-        test_dataset = CustomDataset(type="test")
+        test_dataset = CustomDataset(
+            type="test", stft_length=hp.stft_length, stft_shift=hp.stft_shift
+        )
 
         test_loader = torch.utils.data.DataLoader(
             dataset=test_dataset,
