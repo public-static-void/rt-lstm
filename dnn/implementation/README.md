@@ -1,6 +1,6 @@
 # LSTM For Real-Time Multichannel Speech Enhancement
 
-# Repo Structure
+## Repo Structure
 
 - `net.py` defines the model itself and the dataloaders,
 
@@ -12,13 +12,13 @@
 
 - while `rtpro.py` provides an interactive way of accessing the prediction functionality in a real-time environment.
 
-# Requirements
+## Requirements
 
 First of all, make sure to set up a virtual environment and install all dependencies provided in the `requirements.txt` by running
 
     pip install -r requirements.txt
 
-# How To Prepare The Data For Network Training
+## How To Prepare The Data For Network Training
 
 The data generation and preprocessing is outsourced into a separate branch `DatageneratorForLSTM`. Have a look there and follow the required steps to generate data before any network training can be performed.
 
@@ -30,7 +30,7 @@ Then, once data is generated, make sure it is located in correct directories in 
 
 The root directory path (`./soundfiles/`) can be adjusted by changing the `DATA_DIR` variable in `hyperparameters.py`.
 
-# How To Use Net For Training Or Prediction
+## How To Use Net For Training Or Prediction
 
 To train net run:
 
@@ -52,7 +52,7 @@ There are plenty of adjustable settings in `hyperparameters.py`. Some of the pro
 - Time-dimension LSTM bidirectionality: `t_bidirectional = True` or `t_bidirectional = False`
 - Frequency-dimension LSTM bidirectionality: `f_bidirectional = True` or `f_bidirectional = False`
 
-# How To Use Real-Time Processing
+## How To Use Real-Time Processing
 
 First, make sure to start up a `jack`-server with the current settings:
 
