@@ -696,6 +696,7 @@ class LitNeuralNet(pl.LightningModule):
             type="training",
             stft_length=hp.stft_length,
             stft_shift=hp.stft_shift,
+            sample_rate=hp.fs,
         )
 
         train_loader = torch.utils.data.DataLoader(
@@ -718,6 +719,7 @@ class LitNeuralNet(pl.LightningModule):
             type="validation",
             stft_length=hp.stft_length,
             stft_shift=hp.stft_shift,
+            sample_rate=hp.fs,
         )
 
         val_loader = torch.utils.data.DataLoader(
@@ -736,7 +738,10 @@ class LitNeuralNet(pl.LightningModule):
             Prediction dataloader.
         """
         test_dataset = CustomDataset(
-            type="test", stft_length=hp.stft_length, stft_shift=hp.stft_shift
+            type="test",
+            stft_length=hp.stft_length,
+            stft_shift=hp.stft_shift,
+            sample_rate=hp.fs,
         )
 
         test_loader = torch.utils.data.DataLoader(

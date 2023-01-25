@@ -14,6 +14,7 @@ import glob
 import json
 
 import numpy as np
+from scipy.signal import get_window
 import soundfile
 import torch
 from torch.utils.data import Dataset
@@ -37,7 +38,7 @@ class CustomDataset(Dataset):
     """
 
     def __init__(
-        self, type: str, stft_lenght: int, stft_shift: int, sample_rate: int
+        self, type: str, stft_length: int, stft_shift: int, sample_rate: int
     ):
         """Constructor.
 
@@ -56,7 +57,7 @@ class CustomDataset(Dataset):
         """
         super(CustomDataset).__init__()
         self.type = type
-        self.stft_length = stft_lenght
+        self.stft_length = stft_length
         self.stft_shift = stft_shift
         self.sample_rate = sample_rate
 
