@@ -474,8 +474,8 @@ class LitNeuralNet(pl.LightningModule):
             im = ax.imshow(
                 mix_spec.to("cpu"), origin="lower", vmin=-80, vmax=20
             )
-            ax.set_xlabel("Frequency [bin]")
-            ax.set_ylabel("Time [bin]")
+            ax.set_ylabel("Frequency [bin]")
+            ax.set_xlabel("Time [bin]")
             fig_mix.colorbar(im, orientation="vertical", pad=0.1)
             plt.title("mix")
 
@@ -484,8 +484,8 @@ class LitNeuralNet(pl.LightningModule):
             im = ax.imshow(
                 clean_spec.to("cpu"), origin="lower", vmin=-80, vmax=20
             )
-            ax.set_xlabel("Frequency [bin]")
-            ax.set_ylabel("Time [bin]")
+            ax.set_ylabel("Frequency [bin]")
+            ax.set_xlabel("Time [bin]")
             fig_clean.colorbar(im, orientation="vertical", pad=0.1)
             plt.title("clean")
 
@@ -494,8 +494,8 @@ class LitNeuralNet(pl.LightningModule):
             im = ax.imshow(
                 pred_spec.to("cpu"), origin="lower", vmin=-80, vmax=20
             )
-            ax.set_xlabel("Frequency [bin]")
-            ax.set_ylabel("Time [bin]")
+            ax.set_ylabel("Frequency [bin]")
+            ax.set_xlabel("Time [bin]")
             fig_pred.colorbar(im, orientation="vertical", pad=0.1)
             plt.title("pred")
 
