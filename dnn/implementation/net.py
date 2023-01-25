@@ -439,7 +439,9 @@ class LitNeuralNet(pl.LightningModule):
             )
 
             transform = torchaudio.transforms.Spectrogram(
-                n_fft=hp.stft_length, win_length=hp.stft_shift
+                n_fft=hp.stft_length,
+                win_length=hp.stft_length,
+                hop_length=hp.stft_shift,
             )
             mix_spec = transform(mix_istft.to("cpu"))
             clean_spec = transform(clean_istft.to("cpu"))
@@ -517,19 +519,19 @@ class LitNeuralNet(pl.LightningModule):
                 "mix-" + str(batch_idx),
                 mix_istft,
                 self.current_epoch,
-                16000,
+                hp.fs,
             )
             writer.add_audio(
                 "clean-" + str(batch_idx),
                 clean_istft,
                 self.current_epoch,
-                16000,
+                hp.fs,
             )
             writer.add_audio(
                 "pred-" + str(batch_idx),
                 pred_istft,
                 self.current_epoch,
-                16000,
+                hp.fs,
             )
 
         return loss

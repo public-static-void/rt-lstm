@@ -124,9 +124,9 @@ checkpointing = ModelCheckpoint(
 # prediction loop using 1 batch(es).
 is_test_run = False
 # Limit batches for debug training/prediction runs.
-limit_train_batches = 0.99
-limit_val_batches = 0.99
-limit_predict_batches = 0.99
+limit_train_batches = 0.01
+limit_val_batches = 0.01
+limit_predict_batches = 0.01
 overfit_batches = 0.0
 # Anomaly detection
 mode = True
