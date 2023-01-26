@@ -1,4 +1,3 @@
-
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
@@ -6,7 +5,7 @@
 Authors       : Vadim Titov
 Matr.-Nr.     : 6021356
 Created       : June 23rd, 2022
-Last modified : January 19th, 2023
+Last modified : January 26th, 2023
 Description   : Master's Project "Source Separation for Robot Control"
 Topic         : Prediction module of the LSTM RNN Project
 """
@@ -24,10 +23,8 @@ def main():
     """
     # Load pretrained net from checkpoint.
     trained_model = LitNeuralNet.load_from_checkpoint(
-        # checkpoint_path=hp.CHECKPOINT_DIR
-        # + hp.checkpoint_name
         checkpoint_path=hp.trained_model_path,
-        batch_size=1 
+        batch_size=1,
     )
     trained_model.eval()
     trained_model.freeze()
@@ -46,9 +43,7 @@ def main():
     )
 
     # Perform prediction.
-    predictions = trainer.predict(
-        trained_model, None, None
-    )
+    predictions = trainer.predict(trained_model, None, None)
     performance.__calculate_pesq__()
 
 

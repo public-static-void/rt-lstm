@@ -5,7 +5,7 @@
 Authors       : Vadim Titov
 Matr.-Nr.     : 6021356
 Created       : June 23rd, 2022
-Last modified : January 19th, 2023
+Last modified : January 26th, 2023
 Description   : Master's Project "Source Separation for Robot Control"
 Topic         : Training module of the LSTM RNN Project
 """
@@ -39,8 +39,10 @@ def main():
     )
     # Initialize net.
     model = LitNeuralNet(
-        input_size=hp.input_size, hidden_size_1=hp.hidden_size_1,
-        hidden_size_2=hp.hidden_size_2, output_size=hp.output_size,
+        input_size=hp.input_size,
+        hidden_size_1=hp.hidden_size_1,
+        hidden_size_2=hp.hidden_size_2,
+        output_size=hp.output_size,
         batch_size=hp.batch_size,
     )
     print(model)
@@ -54,20 +56,6 @@ def main():
     # Train model.
     trainer.fit(
         model,
-        # HDF5DataModule(
-        #     batch_size=hp.batch_size,
-        #     prep_files={
-        #         "data": "/data/test/prep_mix_mix_ch3_sp5_dir0.hdf5",
-        #         "meta": "/data/test/prep_mix_meta_mix_ch3_sp5_dir0.json",
-        #     },
-        #     stft_length_samples=hp.stft_length,
-        #     stft_shift_samples=hp.stft_shift,
-        #     snr_range=None,
-        #     meta_frame_length=3 * 16000,
-        #     n_workers=hp.num_workers,
-        #     n_speakers=1,
-        #     fs=16000,
-        # ),
     )
 
 

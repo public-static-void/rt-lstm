@@ -14,9 +14,9 @@ import glob
 import json
 
 import numpy as np
-from scipy.signal import get_window
 import soundfile
 import torch
+from scipy.signal import get_window
 from torch.utils.data import Dataset
 
 
@@ -232,20 +232,25 @@ class CustomDataset(Dataset):
         # In Test dataset cut long audio files to X seconds otherwise GPU is overloaded
         else:
             max_seconds = 7
-            if clean_read.shape[0] / 16000 > max_seconds:
-                clean_read = self.__cut__(clean_read, max_seconds * self.sample_rate, 0)
-                noise_read = self.__cut__(noise_read, max_seconds * self.sample_rate, 0)
+            if clean_read.shape[0] / hp.fs > max_seconds:
+                clean_read = self.__cut__(
+                    clean_read, max_seconds * self.sample_rate, 0
+                )
+                noise_read = self.__cut__(
+                    noise_read, max_seconds * self.sample_rate, 0
+                )
                 mixture_read = self.__cut__(
                     mixture_read, max_seconds * self.sample_rate, 0
                 )
 
-        #print(clean_read.shape)
-        #print(noise_read.shape)
-        #print(mixture_read.shape)
+        # print(clean_read.shape)
+        # print(noise_read.shape)
+        # print(mixture_read.shape)
 
-        # soundfile.write("./soundfiles/Hearing/clean.wav", clean_read, 16000)
-        # soundfile.write("./soundfiles/Hearing/noise.wav", noise_read, 16000)
-        # soundfile.write("./soundfiles/Hearing/mixture.wav", mixture_read, 16000)
+        # soundfile.write("./soundfiles/Hearing/clean.wav", clean_read, hp.fs)
+        # soundfile.write("./soundfiles/Hearing/noise.wav", noise_read, hp.fs)
+        # soundfile.write("./soundfiles/Hearing/mixture.wav", mixture_read,
+        #                 hp.fs)
 
         clean_stft = torch.stft(
             torch.from_numpy(clean_read.T),
@@ -269,11 +274,11 @@ class CustomDataset(Dataset):
             return_complex=True,
         )
 
-        #print(clean_stft.shape)
-        #print('real', torch.real(clean_stft[0]).shape)
-        #print('imag', torch.imag(clean_stft[0]).shape)
-        #print(noise_stft.shape)
-        #print(mixture_stft.shape)
+        # print(clean_stft.shape)
+        # print('real', torch.real(clean_stft[0]).shape)
+        # print('imag', torch.imag(clean_stft[0]).shape)
+        # print(noise_stft.shape)
+        # print(mixture_stft.shape)
 
         clean_split_concatenate = torch.stack(
             (torch.real(clean_stft[0]), torch.imag(clean_stft[0])), dim=0
@@ -288,16 +293,16 @@ class CustomDataset(Dataset):
         clean_name = self.data_clean[index]
         noise_name = self.data_noise[index]
 
-        #print('clean_name' + clean_name)
+        # print('clean_name' + clean_name)
 
         mixture_name = clean_name.replace("clean", "mixture")
 
-        #print(clean_split_concatenate.shape)
-        #print(noise_split_concatenate.shape)
+        # print(clean_split_concatenate.shape)
+        # print(noise_split_concatenate.shape)
 
-        #print('clean', clean_split_concatenate.shape)
-        #print('noise',noise_split_concatenate.shape)
-        #print('mixture',mixture_split_concatenate.shape)
+        # print('clean', clean_split_concatenate.shape)
+        # print('noise',noise_split_concatenate.shape)
+        # print('mixture',mixture_split_concatenate.shape)
 
         if self.type == "test":
             meta_data = {

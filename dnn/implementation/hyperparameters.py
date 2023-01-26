@@ -5,7 +5,7 @@
 Authors       : Vadim Titov
 Matr.-Nr.     : 6021356
 Created       : June 23rd, 2022
-Last modified : January 22th, 2023
+Last modified : January 26th, 2023
 Description   : Master's Project "Source Separation for Robot Control"
 Topic         : Hyperparameters module of the LSTM RNN Project
 """
@@ -21,7 +21,7 @@ from scipy.signal import get_window
 ###########################
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
-#device = "cpu"
+# device = "cpu"
 num_devices = 1
 num_workers = 8
 DATA_DIR = "soundfiles/"
@@ -31,7 +31,7 @@ OUT_DIR = "out/"
 fs = 16000
 stft_length = 512
 stft_shift = 256
-#stft_shift = 128
+# stft_shift = 128
 fftbins = True
 window = torch.from_numpy(np.sqrt(get_window("hann", stft_length, fftbins))).to(
     device
@@ -45,7 +45,7 @@ input_size = 6  # 3 microphone channels * 2 (Re + Im).
 hidden_size_1 = 256
 hidden_size_2 = 128
 output_size = 2  # 1 channel * 2 (Re + Im).
-t_bidirectional = True
+t_bidirectional = False
 f_bidirectional = True
 batch_size = 1
 batch_first = True
@@ -69,10 +69,6 @@ log_samples = [0, 1, 2]
 #################
 # Checkpointing #
 #################
-
-# CHECKPOINT_DIR = "/informatik1/students/home/xmannwei/Beamformer/mp-2022/mp-2022/dnn/implementation/checkpoints/"
-# CHECKPOINT_DIR = "checkpoints/"
-# CHECKPOINT_DIR = None
 
 if t_bidirectional is True and f_bidirectional is True and stft_shift == 256:
     trained_model_path = "checkpoints/tt256.ckpt"
@@ -124,8 +120,8 @@ checkpointing = ModelCheckpoint(
 # prediction loop using 1 batch(es).
 is_test_run = False
 # Limit batches for debug training/prediction runs.
-limit_train_batches = 0.01
-limit_val_batches = 0.01
+limit_train_batches = 0.99
+limit_val_batches = 0.99
 limit_predict_batches = 0.99
 overfit_batches = 0.0
 # Anomaly detection
