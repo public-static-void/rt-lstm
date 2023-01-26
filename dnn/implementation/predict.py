@@ -1,3 +1,4 @@
+
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
@@ -25,7 +26,8 @@ def main():
     trained_model = LitNeuralNet.load_from_checkpoint(
         # checkpoint_path=hp.CHECKPOINT_DIR
         # + hp.checkpoint_name
-        checkpoint_path=hp.trained_model_path
+        checkpoint_path=hp.trained_model_path,
+        batch_size=1 
     )
     trained_model.eval()
     trained_model.freeze()

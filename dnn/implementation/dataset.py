@@ -66,9 +66,9 @@ class CustomDataset(Dataset):
         if self.type == "training":
             self.data_dir = "soundfiles/generatedDatasets/Training"
         elif self.type == "validation":
-            self.data_dir = "soundfiles/generatedDatasets/Validation"
+            self.data_dir = "soundfiles//generatedDatasets/Validation"
         elif self.type == "test":
-            self.data_dir = "soundfiles/generatedDatasets/Test"
+            self.data_dir = "soundfiles//generatedDatasets/Test"
 
         self.data_clean = np.sort(
             np.array(glob.glob(self.data_dir + "/*clean.wav"))
@@ -177,6 +177,7 @@ class CustomDataset(Dataset):
             noise_read, fs = soundfile.read(self.data_noise[index])
 
         # Read Meta Data
+        # print (index)
         meta_file = open(self.data_meta[index])
         meta_json = json.loads(meta_file.read())
         reverberation_rate = meta_json["reverberationRate"]
@@ -228,18 +229,19 @@ class CustomDataset(Dataset):
                 mixture_read, samples_to_take, start_sample
             )
 
-        # In Test dataset cut long audio files to 15 seconds otherwise GPU is overloaded
+        # In Test dataset cut long audio files to X seconds otherwise GPU is overloaded
         else:
-            if clean_read.shape[0] / 16000 > 15:
-                clean_read = self.__cut__(clean_read, 15 * self.sample_rate, 0)
-                noise_read = self.__cut__(noise_read, 15 * self.sample_rate, 0)
+            max_seconds = 7
+            if clean_read.shape[0] / 16000 > max_seconds:
+                clean_read = self.__cut__(clean_read, max_seconds * self.sample_rate, 0)
+                noise_read = self.__cut__(noise_read, max_seconds * self.sample_rate, 0)
                 mixture_read = self.__cut__(
-                    mixture_read, 15 * self.sample_rate, 0
+                    mixture_read, max_seconds * self.sample_rate, 0
                 )
 
-        # print(clean_read.shape)
-        # print(noise_read.shape)
-        # print(mixture_read.shape)
+        #print(clean_read.shape)
+        #print(noise_read.shape)
+        #print(mixture_read.shape)
 
         # soundfile.write("./soundfiles/Hearing/clean.wav", clean_read, 16000)
         # soundfile.write("./soundfiles/Hearing/noise.wav", noise_read, 16000)
@@ -267,9 +269,11 @@ class CustomDataset(Dataset):
             return_complex=True,
         )
 
-        # print(clean_stft.shape)
-        # print(noise_stft.shape)
-        # print(mixture_stft.shape)
+        #print(clean_stft.shape)
+        #print('real', torch.real(clean_stft[0]).shape)
+        #print('imag', torch.imag(clean_stft[0]).shape)
+        #print(noise_stft.shape)
+        #print(mixture_stft.shape)
 
         clean_split_concatenate = torch.stack(
             (torch.real(clean_stft[0]), torch.imag(clean_stft[0])), dim=0
@@ -283,18 +287,22 @@ class CustomDataset(Dataset):
 
         clean_name = self.data_clean[index]
         noise_name = self.data_noise[index]
+
+        #print('clean_name' + clean_name)
+
         mixture_name = clean_name.replace("clean", "mixture")
 
-        # print(clean_split_concatenate.shape)
-        # print(noise_split_concatenate.shape)
+        #print(clean_split_concatenate.shape)
+        #print(noise_split_concatenate.shape)
 
-        # print(clean_split_concatenate.shape)
-        # print(noise_split_concatenate.shape)
-        # print(mixture_split_concatenate.shape)
+        #print('clean', clean_split_concatenate.shape)
+        #print('noise',noise_split_concatenate.shape)
+        #print('mixture',mixture_split_concatenate.shape)
 
         if self.type == "test":
             meta_data = {
                 "data_index": data_index,
+                "SISDR": 0,
                 "SNR": SNR,
                 "reverberation_rate": reverberation_rate,
                 "min_distance_to_noise": min_distance_to_noise,

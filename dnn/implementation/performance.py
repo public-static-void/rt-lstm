@@ -19,7 +19,7 @@ def __calculate_pesq__():
 
     #print(data_clean)
 
-    dictionary = {'data_index': [] , 'SNR':[], 'PESQ':[], 'Reverberation':[], 'DisToNoise':[]}
+    dictionary = {'data_index': [] , 'SNR':[], 'SISDR':[], 'PESQ':[], 'Reverberation':[], 'DisToNoise':[]}
     index = 0
     for file_name in data_clean:
         clean_file, _ = torchaudio.load(file_name)
@@ -44,12 +44,14 @@ def __calculate_pesq__():
         dictionary['data_index'].append(meta_json["data_index"]) 
         dictionary['Reverberation'].append(meta_json["reverberation_rate"])
         dictionary['SNR'].append(meta_json["SNR"]) 
+        dictionary['SISDR'].append(meta_json["SISDR"]) 
         dictionary['DisToNoise'].append(meta_json["min_distance_to_noise"]) 
         
         index += 1
         print('PESQ Sample complete')
             
     Data_Matrix = pd.DataFrame(data=dictionary)
+
     Data_Matrix.to_csv(hyperparameters.OUT_DIR+'/Dataframe.csv')
 
 if __name__ == "__main__":

@@ -585,7 +585,7 @@ class LitNeuralNet(pl.LightningModule):
         ) = self.common_step(
             batch, batch_idx, h_pre_t, c_pre_t, h_pre_f, c_pre_f
         )
-
+        si_sdr = SI_SDR().to("cuda")
         # Generate sound files for mix, clean and prediction.
         mix_istft = torch.istft(
             mix_co[0], hp.stft_length, hp.stft_shift, window=hp.window
@@ -618,7 +618,7 @@ class LitNeuralNet(pl.LightningModule):
             pred_istft.cpu(),
             hp.fs,
         )
-
+        meta_data["SISDR"] = si_sdr(pred_istft, clean_istft).item()
         meta_data["SNR"] = meta_data["SNR"].item()
         meta_data["reverberation_rate"] = meta_data["reverberation_rate"].item()
         meta_data["min_distance_to_noise"] = meta_data[

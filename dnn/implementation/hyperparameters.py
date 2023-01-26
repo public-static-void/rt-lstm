@@ -21,7 +21,7 @@ from scipy.signal import get_window
 ###########################
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
-# device = "cpu"
+#device = "cpu"
 num_devices = 1
 num_workers = 8
 DATA_DIR = "soundfiles/"
@@ -30,7 +30,7 @@ OUT_DIR = "out/"
 # STFT settings.
 fs = 16000
 stft_length = 512
-# stft_shift = 256
+#stft_shift = 256
 stft_shift = 128
 fftbins = True
 window = torch.from_numpy(np.sqrt(get_window("hann", stft_length, fftbins))).to(
@@ -126,7 +126,7 @@ is_test_run = False
 # Limit batches for debug training/prediction runs.
 limit_train_batches = 0.01
 limit_val_batches = 0.01
-limit_predict_batches = 0.01
+limit_predict_batches = 0.99
 overfit_batches = 0.0
 # Anomaly detection
 mode = True
