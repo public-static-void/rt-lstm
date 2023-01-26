@@ -48,7 +48,6 @@ def __calculate_pesq__():
         dictionary['DisToNoise'].append(meta_json["min_distance_to_noise"]) 
         
         index += 1
-        print('PESQ Sample complete')
             
     Data_Matrix = pd.DataFrame(data=dictionary)
 

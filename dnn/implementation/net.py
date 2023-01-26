@@ -571,7 +571,7 @@ class LitNeuralNet(pl.LightningModule):
         # needed to get data index as a s
         meta_data.update(data_index=int(meta_data["data_index"].item()))
         batch = batch[:-1]
-        print(batch[0].shape)
+        #print(batch[0].shape)
 
         (
             _,

@@ -30,8 +30,8 @@ OUT_DIR = "out/"
 # STFT settings.
 fs = 16000
 stft_length = 512
-#stft_shift = 256
-stft_shift = 128
+stft_shift = 256
+#stft_shift = 128
 fftbins = True
 window = torch.from_numpy(np.sqrt(get_window("hann", stft_length, fftbins))).to(
     device
@@ -45,7 +45,7 @@ input_size = 6  # 3 microphone channels * 2 (Re + Im).
 hidden_size_1 = 256
 hidden_size_2 = 128
 output_size = 2  # 1 channel * 2 (Re + Im).
-t_bidirectional = False
+t_bidirectional = True
 f_bidirectional = True
 batch_size = 1
 batch_first = True
