@@ -301,7 +301,7 @@ class LitNeuralNet(pl.LightningModule):
             Training loss.
         """
         # Forward pass.
-        loss, _, _, _, _, _, _, _ = self.common_step(
+        loss, _, _, _, _, _ = self.common_step(
             batch, batch_idx, h_pre_t, c_pre_t
         )
 
@@ -340,7 +340,7 @@ class LitNeuralNet(pl.LightningModule):
             Training loss.
         """
         # Forward pass.
-        loss, clean_co, mix_co, prediction, _, _, _, _ = self.common_step(
+        loss, clean_co, mix_co, prediction, _, _ = self.common_step(
             batch, batch_idx, h_pre_t, c_pre_t
         )
 
