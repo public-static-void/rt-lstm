@@ -66,9 +66,9 @@ class LitNeuralNet(pl.LightningModule):
         [b*t, f, hs1] -> transform -> [b*f, t, hs1]
         [b*f, t, hs1] -> lstm2 -> [b*f, t, hs2]
         [b*f, t, hs2] -> transform -> [b, f, t, hs3]
-        [b, f, t, c] -> dense -> [b, f, t, c]
-        [b, f, t, hs3] -> transform -> [b, f, t, hs3]
-        [b, f, t, c] -> tanh -> [b, f, t, 1]
+        [b, f, t, hs3] -> dense -> [b, f, t, hs3]
+        [b, f, t, hs3] -> transform -> [b, c, f, t]
+        [b, c, f, t] -> tanh -> [b, 1, f, t]
 
         input_size: int
             Size of the net's input layer.
