@@ -45,9 +45,9 @@ input_size = 6  # 3 microphone channels * 2 (Re + Im).
 hidden_size_1 = 256
 hidden_size_2 = 128
 output_size = 2  # 1 channel * 2 (Re + Im).
-t_bidirectional = False
+t_bidirectional = True
 f_bidirectional = True
-batch_size = 1
+batch_size = 2
 batch_first = True
 num_epochs = 100
 learning_rate = 0.0005
@@ -64,7 +64,7 @@ on_epoch = True
 log_every_n_steps = 1
 tb_logger = pl_loggers.TensorBoardLogger(LOG_DIR, log_graph=False)
 # For which samples from a batch should spectrogram and wav audio be logged.
-log_samples = [0, 1, 2]
+log_samples = [0, 3, 4]
 
 #################
 # Checkpointing #

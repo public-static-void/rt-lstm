@@ -531,4 +531,4 @@ requirements/base.txt
 
 # whitelist
 !/beamformer/implementation/Samples/*
-!7dnn/implementation/checkpoints/*
+!/dnn/implementation/checkpoints/*
