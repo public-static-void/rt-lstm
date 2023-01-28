@@ -224,6 +224,8 @@ def show_spectrogram(
         origin="lower",
         extent=[v_time[0], v_time[-1], v_freq[0], v_freq[-1]],
         aspect="auto",
+        vmin=-140,
+        vmax=-20,
     )
     fig.colorbar(im, orientation="vertical", pad=0.2)
     plt.title(title)
@@ -249,20 +251,17 @@ def main():
     room_dim = [20, 30]
 
     # Number of mics.
-    N_mics = 4
-    N_mics2 = 2
-    N_mics3 = 3
+    N_mics = 3
+
+    mics_locs = [10, 15]
 
     # Define mic array.
-    R1 = pra.linear_2D_array([2, 1.5], N_mics, 0, 0.1)
-    R2 = pra.linear_2D_array([2, 1.5], N_mics2, 0, 0.1)
-    R3 = pra.linear_2D_array([2, 1.5], N_mics3, 0, 0.1)
+    R3 = pra.linear_2D_array(mics_locs, N_mics, 0, 0.1)
 
     # Define source locations.
-    source_locs1 = [4.5, 2.5]
-    source_locs2 = [17.5, 22.5]
-    source_locs3 = [5.5, 4.5]
-    source_locs4 = [7.5, 6.5]
+
+    speech_source_locs = [5, 5]
+    noise_source_locs = [17.5, 17.5]
 
     # Frame length in ms.
     fl = 32
@@ -278,40 +277,22 @@ def main():
     delay = 1.3
 
     # Create room.
-    room1 = create_room(room_dim, rt60)
-    room2 = create_room(room_dim, rt60)
-    room3 = create_room(room_dim, rt60)
+    room = create_room(room_dim, rt60)
 
     # Create beamformer.
-    beamformer1 = pra.Beamformer(R1, room1.fs)
-    beamformer2 = pra.Beamformer(R2, room2.fs)
-    beamformer3 = pra.Beamformer(R3, room3.fs)
+    beamformer = pra.Beamformer(R3, room.fs)
 
     # Add beamformer to room.
-    add_mics(room1, beamformer1)
-    add_mics(room2, beamformer2)
-    add_mics(room3, beamformer3)
+    add_mics(room, beamformer)
 
     # Add source(s).
-    add_sources(room1, source_locs1, audio_speech, delay)
-    add_sources(room1, source_locs2, audio_noise, delay)
+    add_sources(room, speech_source_locs, audio_speech, delay)
+    add_sources(room, noise_source_locs, audio_noise, delay)
 
-    add_sources(room2, source_locs3, audio_speech, delay)
-    add_sources(room2, source_locs4, audio_noise, delay)
+    room.compute_rir()
 
-    add_sources(room3, source_locs2, audio_speech, delay)
-    add_sources(room3, source_locs4, audio_noise, delay)
+    premix3 = room.simulate(return_premix=True)
 
-    room1.compute_rir()
-    room2.compute_rir()
-    room3.compute_rir()
-
-    # premix1 = room1.simulate(return_premix=True)
-    # premix2 = room2.simulate(return_premix=True)
-    premix3 = room3.simulate(return_premix=True)
-
-    # premix_noise1 = premix1[0] + premix1[1]
-    # premix_noise2 = premix2[0] + premix2[1]
     premix_noise3 = premix3[0] + premix3[1]
 
     sp_freqs, sp_times, sp_power = stft(premix3[0], fs_speech, window=window1)
@@ -399,57 +380,33 @@ def main():
 
     premix_noisy_speech = premix3[0] + premix3[1]
 
-    sf.write("noisy_speech0-0.wav", premix_noisy_speech[0], fs_speech)
-    sf.write("noisy_speech0-1.wav", premix_noisy_speech[1], fs_speech)
-    sf.write("noisy_speech0-2.wav", premix_noisy_speech[2], fs_speech)
+    # sf.write("noisy_speech0-0.wav", premix_noisy_speech[0], fs_speech)
+    # sf.write("noisy_speech0-1.wav", premix_noisy_speech[1], fs_speech)
+    # sf.write("noisy_speech0-2.wav", premix_noisy_speech[2], fs_speech)
+    # sf.write("reconstr_filtered_speech0.wav", filtered_istft, fs_speech)
 
-    sf.write("reconstr_filtered_speech0.wav", filtered_istft, fs_speech)
-
-    show_spectrogram(
-        n_power[0], n_freqs, n_times, "noise channel 0 spectrogram"
-    )
-    show_spectrogram(
-        n_power[1], n_freqs, n_times, "noise channel 1 spectrogram"
-    )
-    show_spectrogram(
-        n_power[2], n_freqs, n_times, "noise channel 2 spectrogram"
-    )
+    # show_spectrogram(
+    #     n_power[0], n_freqs, n_times, "Noise channel 0 spectrogram"
+    # )
 
     show_spectrogram(
-        sp_power[0], sp_freqs, sp_times, "speech channel 0 spectrogram"
-    )
-    show_spectrogram(
-        sp_power[1], sp_freqs, sp_times, "speech channel 1 spectrogram"
-    )
-    show_spectrogram(
-        sp_power[2], sp_freqs, sp_times, "speech channel 2 spectrogram"
+        sp_power[0], sp_freqs, sp_times, "Speech channel 0 spectrogram"
     )
 
     show_spectrogram(
         noisy_speech[0],
         sp_freqs,
         sp_times,
-        "noisy speech channel 0 spectrogram",
-    )
-    show_spectrogram(
-        noisy_speech[1],
-        sp_freqs,
-        sp_times,
-        "noisy speech channel 1 spectrogram",
-    )
-    show_spectrogram(
-        noisy_speech[2],
-        sp_freqs,
-        sp_times,
-        "noisy speech channel 2 spectrogram",
+        "Noisy mixture channel 0 spectrogram",
     )
 
     show_spectrogram(
         filtered_speech,
         sp_freqs,
         sp_times,
-        "filtered speech channel 0 spectrogram",
+        "Filtered speech spectrogram",
     )
+    room.plot()
 
     plt.show()
 

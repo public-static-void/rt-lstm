@@ -528,3 +528,6 @@ requirements/base.txt
 
 # wav
 *.wav
+
+# whitelist
+!/beamformer/implementation/Samples/*
