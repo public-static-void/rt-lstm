@@ -493,7 +493,7 @@ tests/legacy/checkpoints/
 ml-runs/
 mlruns/
 *.zip
-# *.ckpt
+*.ckpt
 test-reports/
 wandb
 .forked/
@@ -531,3 +531,4 @@ requirements/base.txt
 
 # whitelist
 !/beamformer/implementation/Samples/*
+!7dnn/implementation/checkpoints/*
