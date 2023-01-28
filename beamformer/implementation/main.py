@@ -5,7 +5,7 @@
 Authors       : Vadim Titov, Henning Möllers, Leon Mannweiler
 Matr.-Nr.     : 6021356, ..., ...
 Created       : May 12th, 2022
-Last modified : June 23th, 2022
+Last modified : January 28th, 2023
 Description   : Master's Project "Source Separation for Robot Control"
 Topic         : Beamformer: MVDR Implementation
 """
@@ -291,12 +291,15 @@ def main():
 
     room.compute_rir()
 
-    premix3 = room.simulate(return_premix=True)
+    premix = room.simulate(return_premix=True)
 
-    premix_noise3 = premix3[0] + premix3[1]
+    premix_speech = premix[0]
+    premix_noise = premix[1]
 
-    sp_freqs, sp_times, sp_power = stft(premix3[0], fs_speech, window=window1)
-    n_freqs, n_times, n_power = stft(premix_noise3, fs_speech, window=window1)
+    sp_freqs, sp_times, sp_power = stft(
+        premix_speech, fs_speech, window=window1
+    )
+    n_freqs, n_times, n_power = stft(premix_noise, fs_speech, window=window1)
 
     # covariance matrix
     alpha = 0.8
@@ -378,12 +381,12 @@ def main():
         noisy_speech, fs_speech, window1, time_axis=2, freq_axis=1
     )
 
-    premix_noisy_speech = premix3[0] + premix3[1]
+    premix_noisy_speech = premix[0] + premix[1]
 
-    # sf.write("noisy_speech0-0.wav", premix_noisy_speech[0], fs_speech)
-    # sf.write("noisy_speech0-1.wav", premix_noisy_speech[1], fs_speech)
-    # sf.write("noisy_speech0-2.wav", premix_noisy_speech[2], fs_speech)
-    # sf.write("reconstr_filtered_speech0.wav", filtered_istft, fs_speech)
+    sf.write("noisy_speech0-0.wav", premix_noisy_speech[0], fs_speech)
+    sf.write("noisy_speech0-1.wav", premix_noisy_speech[1], fs_speech)
+    sf.write("noisy_speech0-2.wav", premix_noisy_speech[2], fs_speech)
+    sf.write("reconstr_filtered_speech0.wav", filtered_istft, fs_speech)
 
     # show_spectrogram(
     #     n_power[0], n_freqs, n_times, "Noise channel 0 spectrogram"
@@ -406,7 +409,6 @@ def main():
         sp_times,
         "Filtered speech spectrogram",
     )
-    room.plot()
 
     plt.show()
 
