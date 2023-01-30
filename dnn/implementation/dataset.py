@@ -13,6 +13,7 @@ Topic         : Dataset module of the LSTM RNN Project
 import glob
 import json
 
+import hyperparameters as hp
 import numpy as np
 import soundfile
 import torch
