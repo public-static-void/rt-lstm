@@ -24,7 +24,7 @@ nvidia-cudnn-cu11==8.5.0.96
 packaging==22.0
 pandas==1.5.2
 pesq==0.0.4
-Pillow==9.3.0
+Pillow==10.3.0
 protobuf==3.20.1
 pycparser==2.21
 pyparsing==3.0.9
