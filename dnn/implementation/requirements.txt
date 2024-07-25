@@ -37,7 +37,7 @@ scipy==1.9.3
 six==1.16.0
 soundfile==0.11.0
 tensorboardX==2.5.1
-torch==1.13.1
+torch==2.2.0
 torchaudio==0.13.0
 torchmetrics==0.11.0
 tqdm==4.66.3
