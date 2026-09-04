@@ -127,5 +127,3 @@ overfit_batches = 0.0
 # Anomaly detection
 mode = True
 check_nan = True
-# Automatically find best learning rate.
-auto_lr_find = False
