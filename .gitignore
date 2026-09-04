@@ -529,6 +529,9 @@ requirements/base.txt
 # wav
 *.wav
 
+# Knowledge Documents (KDs) — managed by Agentic Swarm
+knowledge/
+
 # whitelist
 !/beamformer/implementation/Samples/*
 !/dnn/implementation/checkpoints/*
