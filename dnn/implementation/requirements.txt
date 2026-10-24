@@ -20,7 +20,7 @@ numpy==1.23.5
 packaging>=23.0
 pandas==1.5.2
 pesq==0.0.4
-Pillow==12.3.0
+Pillow==13.0.0
 protobuf==6.33.5
 pycparser==2.21
 pyparsing==3.0.9
